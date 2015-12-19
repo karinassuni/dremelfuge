@@ -1,55 +1,4 @@
-class Button
-{
-  protected:
-    const uint8_t pin;
-    const bool isToggleButton;
-    uint16_t debounceDelay;
-
-    bool defaultState; // not const because the state of the button on begin() is assumed to be the defaultState
-    bool currentState;
-    unsigned long lastTimePressed;
-  public:
-    // combination of Button(byte) and Button(byte, bool) and Button(byte, bool, int) constructors via default args
-    Button(const uint8_t pin, const bool isToggleButton=false, uint16_t debounceDelay=500); // const variables can only be assigned through initialization lists
-                                               // (since they're supposed to be read-only)
-
-    void setDebounceDelay(int debounceDelay)
-    {
-      this->debounceDelay = debounceDelay;
-    }
-    
-    bool pressed()
-    {
-      currentState = digitalRead(pin);
-      if(currentState == !defaultState && (millis() - lastTimePressed > debounceDelay || isToggleButton == true))
-      {
-        lastTimePressed = millis();
-        return true;
-      }
-      else
-        return false;
-    }
-    void toggleWhenPressed(bool& condition)
-    {
-      if(isToggleButton)
-        condition = digitalRead(pin);
-      else if(pressed())
-        condition = !condition;
-    }
-    bool held()
-    {
-      return digitalRead(pin) == !defaultState;
-      // same behavior as pressed() for toggle buttons
-    }
-
-    //*** separated from constructor bc these functions need to be called in setup(), and object needs global scope
-    virtual void begin()
-    {
-      pinMode(pin, INPUT);
-      defaultState = digitalRead(pin);
-      currentState = digitalRead(pin);
-    }
-};
+#include "Button.h"
 
 class LEDButton : public Button
 {
@@ -237,15 +186,3 @@ inline void lcdPrintFormattedSecs(unsigned long seconds) //*** inline = suggesti
   //*** 
   lcd.print(seconds/60); lcd.print(F(":")); lcd.print((seconds%60 < 10 ? F("0") : F(""))); lcd.print(seconds%60);
 }
-
-
-
-
-
-    Button::Button(const uint8_t pin, const bool isToggleButton, uint16_t debounceDelay)
-    : pin(pin), isToggleButton(isToggleButton) // const variables can only be assigned through initialization lists
-                                               // (since they're supposed to be read-only)
-    {
-      this->debounceDelay = debounceDelay;
-      lastTimePressed = 0;
-    }
