@@ -10,13 +10,9 @@ class Button
     unsigned long lastTimePressed;
   public:
     // combination of Button(byte) and Button(byte, bool) and Button(byte, bool, int) constructors via default args
-    Button(const uint8_t pin, const bool isToggleButton=false, uint16_t debounceDelay=500)
-    : pin(pin), isToggleButton(isToggleButton) // const variables can only be assigned through initialization lists
+    Button(const uint8_t pin, const bool isToggleButton=false, uint16_t debounceDelay=500); // const variables can only be assigned through initialization lists
                                                // (since they're supposed to be read-only)
-    {
-      this->debounceDelay = debounceDelay;
-      lastTimePressed = 0;
-    }
+
     void setDebounceDelay(int debounceDelay)
     {
       this->debounceDelay = debounceDelay;
@@ -241,3 +237,15 @@ inline void lcdPrintFormattedSecs(unsigned long seconds) //*** inline = suggesti
   //*** 
   lcd.print(seconds/60); lcd.print(F(":")); lcd.print((seconds%60 < 10 ? F("0") : F(""))); lcd.print(seconds%60);
 }
+
+
+
+
+
+    Button::Button(const uint8_t pin, const bool isToggleButton, uint16_t debounceDelay)
+    : pin(pin), isToggleButton(isToggleButton) // const variables can only be assigned through initialization lists
+                                               // (since they're supposed to be read-only)
+    {
+      this->debounceDelay = debounceDelay;
+      lastTimePressed = 0;
+    }
