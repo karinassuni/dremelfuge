@@ -1,43 +1,3 @@
-#include "Button.h"
-
-class LEDButton : public Button
-{
-  private:
-    const uint8_t ledOutPin;
-    
-    bool ledState;
-  public:
-    // call Button(int, int) constructor using constructor initialization list, setting inherited member data for you
-    LEDButton(const uint8_t pin, const uint8_t ledOutPin, uint16_t debounceDelay=500) : Button(pin, false, debounceDelay), ledOutPin(ledOutPin)
-    {
-      //LED off by default
-      ledState = LOW;
-    }
-    
-    void ledOn()
-    {
-      ledState = HIGH;
-      digitalWrite(ledOutPin, ledState);
-    }
-    void ledOff()
-    {
-      ledState = LOW;
-      digitalWrite(ledOutPin, ledState);
-    }
-    void ledToggle()
-    {
-      ledState = !ledState;
-      digitalWrite(ledOutPin, ledState);
-    }
-
-    void begin()
-    {
-      Button::begin();                      // call base class version of begin()
-      pinMode(ledOutPin, OUTPUT);
-      digitalWrite(ledOutPin, ledState);
-    }
-};
-
 /*
 Dremelfuge ETC Project 2015-2016
 Adapted from Orlov's Instructable on Arduino Powered Centrifuge
@@ -46,9 +6,12 @@ Compiled and Edited by: Albert Ju, Fu Yang Chin
 */
 
 #include <LiquidCrystal.h>               // include the library code for display
+                                         // because it's a file inside of the Arduino.app 's library folder, use <> DIRECTIVE
+#include "LEDButton.h"                   // include custom library local to the .ino--within the same sketch folder
+                                         // because it's a relative path in the same directory, use "" LITERAL PATHNAME
 
 //---GLOBAL VARIABLES--//
-//*** these variables MUST be global because they're being used by multiple totally separate functions--static local won't do
+//:: ***these variables MUST be global because they're being used by multiple totally separate functions--static local won't do
 LiquidCrystal lcd = LiquidCrystal(12, 11, 5, 4, 3, 6);   // initialize the library with the numbers of the interface pins
 
 // White Pushbutton
@@ -74,14 +37,14 @@ Mode mode = Mode::SETTING_TIME;                       //*** initialization over 
 inline void lcdPrintFormattedSecs(unsigned long seconds);
 
 void setup()
-{  
+{
   const uint8_t LCD_COLUMNS = 20, LCD_ROWS = 4;
 
   wpb.begin();
-  wpb.ledOn();
-        
+  wpb.turnLEDOn();
+
   pinMode(MOTOR_PIN, OUTPUT);
-  pinMode(POT_PIN, INPUT);   
+  pinMode(POT_PIN, INPUT);
 
   lcd.begin(LCD_COLUMNS, LCD_ROWS);
   lcd.setCursor(0, 0);
@@ -109,12 +72,12 @@ void loop()
     case Mode::SETTING_TIME:
     {
       countdown = map(analogRead(POT_PIN), 0, 1024, 0, 901);
-      
+
       lcd.setCursor(0, 1);
       lcd.print(F("Set time: <"));
       lcdPrintFormattedSecs(countdown);
       lcd.print(F(">   "));
-      
+
       if(wpb.pressed())
       {
         // then implicitly set in stone the countdown value, change display, and enter next block
@@ -124,7 +87,7 @@ void loop()
         lcd.setCursor(10, 1);
         lcdPrintFormattedSecs(countdown);
         lcd.print(F("    "));
-        
+
         countdown*= (long)1000;                       //*** to save space, the ATmega328P chip of UNO uses 2-byte ints, which can hold at max 32 767; operator*(int, int) will still return an int, but in this case an overflowed int;
                                                       //*** initSetTime, a long, will just be assigned the overflowed value--it won't force operator*(int, int) to return a long.
                                                       //*** so, by typecasting 1000 or using 1000L, you make the compiler promote analogRead() to a long, so operator*(long, long) will return the expected value, within range of sizeof long
@@ -132,18 +95,18 @@ void loop()
       }
       break;
     }
-  
-    
+
+
     case Mode::SETTING_SPEED:
     {
       motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
-      
+
       lcd.setCursor(11, 2);
       lcd.print(F("<"));
       //map printing of motorSpeed to rpm range?!
       lcd.print(motorSpeed);
       lcd.print(F(">  "));
-      
+
       if(wpb.pressed())
       {
         // then implicitly set in stone the motorSpeed value, change display, pre-start the countdown, and switch block
@@ -152,25 +115,25 @@ void loop()
         lcd.setCursor(11, 2);
         lcd.print(motorSpeed);
         lcd.print(F("  "));
-        
+
         spinningStartTime = millis();
-        
+
         mode = Mode::SPINNING;
       }
       break;
     }
-  
-    
+
+
     case Mode::SPINNING:
     {
       unsigned long secondsLeft = (countdown - (millis() - spinningStartTime))/1000;  //*** save RAM AND flash memory by only doing this calculation once per case in loop()
       analogWrite(MOTOR_PIN, motorSpeed);
-      
+
       lcd.setCursor(0, 1);
       lcd.print(F("Finished in: "));
       lcdPrintFormattedSecs(secondsLeft);
       lcd.print(F("  "));
-  
+
       if(wpb.pressed() || secondsLeft == 0)
       {
         digitalWrite(MOTOR_PIN, LOW);
@@ -178,11 +141,11 @@ void loop()
       }
       break;
     }
-  }        
-}                               
+  }
+}
 
 inline void lcdPrintFormattedSecs(unsigned long seconds) //*** inline = suggestion to the compiler to paste the raw code of this function wherever it's called == performance optimization, no hopping pointers to callers and callbacks
 {
-  //*** 
+  //***
   lcd.print(seconds/60); lcd.print(F(":")); lcd.print((seconds%60 < 10 ? F("0") : F(""))); lcd.print(seconds%60);
 }
