@@ -163,6 +163,5 @@ void loop()
 
 inline void lcdPrintFormattedSecs(unsigned long seconds) //*** inline = suggestion to the compiler to paste the raw code of this function wherever it's called == performance optimization, no hopping pointers to callers and callbacks
 {
-  //***
   lcd.print(seconds/60); lcd.print(F(":")); lcd.print((seconds%60 < 10 ? F("0") : F(""))); lcd.print(seconds%60);
 }
