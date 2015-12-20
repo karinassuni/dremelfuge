@@ -63,7 +63,7 @@ void loop()
                                                       //    their values persist even after function ends, as long as the program is still running
                                                       //*** also, static local variables still only have local scope
                                                       //*** perform operations with data of the same type, so as to boost performance by not needing to typecast
-  static unsigned long setDuration;                     // the duration that the centrifuge should run
+  static unsigned long setDuration;                   // the duration that the centrifuge should run
   static unsigned long spinningStartTime;             // point on the timeline where the countdown starts, i.e. when wpb is pressed the second time
   static uint8_t motorSpeed;
 
@@ -71,10 +71,17 @@ void loop()
   {
     case Mode::SETTING_TIME:
     {
+      static bool changedUIString = false;            //*** because changedUIString is static, its state will always persist
+      if(!changedUIString)
+      {
+        lcd.setCursor(0, 1);
+        lcd.print(F("Set time: <"));
+        changedUIString = true;                       //*** this block becomes unreachable after this, because this true value is remembered; therefore only done once when case first entered
+      }
+
       setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
 
-      lcd.setCursor(0, 1);
-      lcd.print(F("Set time: <"));
+      lcd.setCursor(11, 1);
       lcdPrintFormattedSecs(setDuration);
       lcd.print(F(">   "));
 
@@ -88,9 +95,10 @@ void loop()
         lcdPrintFormattedSecs(setDuration);
         lcd.print(F("    "));
 
-        setDuration*= (long)1000;                       //*** to save space, the ATmega328P chip of UNO uses 2-byte ints, which can hold at max 32 767; operator*(int, int) will still return an int, but in this case an overflowed int;
+        setDuration*= (long)1000;                     //*** to save space, the ATmega328P chip of UNO uses 2-byte ints, which can hold at max 32 767; operator*(int, int) will still return an int, but in this case an overflowed int;
                                                       //*** initSetTime, a long, will just be assigned the overflowed value--it won't force operator*(int, int) to return a long.
                                                       //*** so, by typecasting 1000 or using 1000L, you make the compiler promote analogRead() to a long, so operator*(long, long) will return the expected value, within range of sizeof long
+        changedUIString = false;
         mode = Mode::SETTING_SPEED;
       }
       break;
@@ -126,14 +134,14 @@ void loop()
 
     case Mode::SPINNING:
     {
-      static bool changedUIString = false;    //*** because changedUIString is static, its state will always persist
+      static bool changedUIString = false;
       if(!changedUIString)
       {
         analogWrite(MOTOR_PIN, motorSpeed);   // set motorSpeed once and you're done--the voltage stays there!
 
         lcd.setCursor(0, 1);
         lcd.print(F("Finished in: "));
-        changedUIString = true;               //*** this block becomes unreachable after this, because this true value is remembered
+        changedUIString = true;
       }
 
       unsigned long secondsLeft = (setDuration - (millis() - spinningStartTime))/1000;  //*** save RAM AND flash memory by only doing this calculation once per case in loop()
