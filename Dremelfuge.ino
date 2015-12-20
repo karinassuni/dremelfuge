@@ -24,7 +24,7 @@ const uint8_t MOTOR_PIN = 9;
 const uint8_t POT_PIN = A5;
 
 
-//*** No magic numbers! Using case statements, enum will provide readable, self-documenting code for when switching modes
+//:: ***No magic numbers! Using case statements, enum will provide readable, self-documenting code for when switching modes
 enum class Mode
 {
   SETTING_TIME,
@@ -63,7 +63,7 @@ void loop()
                                                       //    their values persist even after function ends, as long as the program is still running
                                                       //*** also, static local variables still only have local scope
                                                       //*** perform operations with data of the same type, so as to boost performance by not needing to typecast
-  static unsigned long countdown;                     // the duration the centrifuge should run
+  static unsigned long setDuration;                     // the duration that the centrifuge should run
   static unsigned long spinningStartTime;             // point on the timeline where the countdown starts, i.e. when wpb is pressed the second time
   static uint8_t motorSpeed;
 
@@ -71,11 +71,11 @@ void loop()
   {
     case Mode::SETTING_TIME:
     {
-      countdown = map(analogRead(POT_PIN), 0, 1024, 0, 901);
+      setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
 
       lcd.setCursor(0, 1);
       lcd.print(F("Set time: <"));
-      lcdPrintFormattedSecs(countdown);
+      lcdPrintFormattedSecs(setDuration);
       lcd.print(F(">   "));
 
       if(wpb.pressed())
@@ -85,10 +85,10 @@ void loop()
 
         // Erase <> selector braces
         lcd.setCursor(10, 1);
-        lcdPrintFormattedSecs(countdown);
+        lcdPrintFormattedSecs(setDuration);
         lcd.print(F("    "));
 
-        countdown*= (long)1000;                       //*** to save space, the ATmega328P chip of UNO uses 2-byte ints, which can hold at max 32 767; operator*(int, int) will still return an int, but in this case an overflowed int;
+        setDuration*= (long)1000;                       //*** to save space, the ATmega328P chip of UNO uses 2-byte ints, which can hold at max 32 767; operator*(int, int) will still return an int, but in this case an overflowed int;
                                                       //*** initSetTime, a long, will just be assigned the overflowed value--it won't force operator*(int, int) to return a long.
                                                       //*** so, by typecasting 1000 or using 1000L, you make the compiler promote analogRead() to a long, so operator*(long, long) will return the expected value, within range of sizeof long
         mode = Mode::SETTING_SPEED;
@@ -134,7 +134,7 @@ void loop()
         changedUIString = true;               //*** this block becomes unreachable after this, because this true value is remembered
       }
 
-      unsigned long secondsLeft = (countdown - (millis() - spinningStartTime))/1000;  //*** save RAM AND flash memory by only doing this calculation once per case in loop()
+      unsigned long secondsLeft = (setDuration - (millis() - spinningStartTime))/1000;  //*** save RAM AND flash memory by only doing this calculation once per case in loop()
       analogWrite(MOTOR_PIN, motorSpeed);
 
       lcd.setCursor(13, 1);
