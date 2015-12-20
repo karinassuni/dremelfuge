@@ -129,13 +129,14 @@ void loop()
       static bool changedUIString = false;    //*** because changedUIString is static, its state will always persist
       if(!changedUIString)
       {
+        analogWrite(MOTOR_PIN, motorSpeed);   // set motorSpeed once and you're done--the voltage stays there!
+
         lcd.setCursor(0, 1);
         lcd.print(F("Finished in: "));
         changedUIString = true;               //*** this block becomes unreachable after this, because this true value is remembered
       }
 
       unsigned long secondsLeft = (setDuration - (millis() - spinningStartTime))/1000;  //*** save RAM AND flash memory by only doing this calculation once per case in loop()
-      analogWrite(MOTOR_PIN, motorSpeed);
 
       lcd.setCursor(13, 1);
       lcdPrintFormattedSecs(secondsLeft);
