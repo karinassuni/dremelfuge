@@ -1,9 +1,9 @@
 #include "Arduino.h"
 #include "Button.h"
 
-//:: combination of Button(byte) and Button(byte, bool) and Button(byte, bool, int) constructors via default args
-Button::Button(const uint8_t pin, const bool isToggleButton, uint16_t debounceDelay)
-: pin(pin), isToggleButton(isToggleButton)
+//:: combination of Button(byte) and Button(byte, int) constructors via default args
+Button::Button(const uint8_t pin, uint16_t debounceDelay)
+: pin(pin)
 {
   this->debounceDelay = debounceDelay;
   lastTimePressed = 0;
@@ -14,7 +14,6 @@ void Button::begin()
 {
   pinMode(pin, INPUT);
   defaultState = digitalRead(pin);
-  currentState = digitalRead(pin);
 }
 
 void Button::setDebounceDelay(int debounceDelay)
@@ -25,8 +24,9 @@ void Button::setDebounceDelay(int debounceDelay)
 
 bool Button::pressed()
 {
-  currentState = digitalRead(pin);
-  if(currentState == !defaultState && (millis() - lastTimePressed > debounceDelay || isToggleButton == true))
+  bool currentState = digitalRead(pin);
+
+  if(currentState == !defaultState && (millis() - lastTimePressed > debounceDelay))
   {
     lastTimePressed = millis();
     return true;
@@ -36,13 +36,10 @@ bool Button::pressed()
 }
 void Button::toggleWhenPressed(bool& condition)
 {
-  if(isToggleButton)
-    condition = digitalRead(pin);
-  else if(pressed())
-    condition = !condition;
+  if(pressed())
+    condition ^= true;   // == condition = !condition ; using a more efficient "xor toggle"
 }
-//:: same behavior as pressed() for toggle buttons
-bool Button::held()
+bool Button::isHeld()
 {
   return digitalRead(pin) == !defaultState;
 }

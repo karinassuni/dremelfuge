@@ -126,17 +126,25 @@ void loop()
 
     case Mode::SPINNING:
     {
+      static bool init = false;
+      if(!init)
+      {
+        lcd.setCursor(0, 1);
+        lcd.print(F("Finished in: "));
+      }
+
+      init = true;
       unsigned long secondsLeft = (countdown - (millis() - spinningStartTime))/1000;  //*** save RAM AND flash memory by only doing this calculation once per case in loop()
       analogWrite(MOTOR_PIN, motorSpeed);
 
-      lcd.setCursor(0, 1);
-      lcd.print(F("Finished in: "));
+      lcd.setCursor(13, 1);
       lcdPrintFormattedSecs(secondsLeft);
       lcd.print(F("  "));
 
       if(wpb.pressed() || secondsLeft == 0)
       {
         digitalWrite(MOTOR_PIN, LOW);
+        init = false;
         mode = Mode::SETTING_TIME;
       }
       break;
