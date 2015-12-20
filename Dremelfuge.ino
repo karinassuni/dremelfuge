@@ -144,7 +144,7 @@ void loop()
       if(wpb.pressed() || secondsLeft == 0)
       {
         digitalWrite(MOTOR_PIN, LOW);
-        changedUIString = false;
+        changedUIString = false;              // UI string will be changed back!
         mode = Mode::SETTING_TIME;
       }
       break;
