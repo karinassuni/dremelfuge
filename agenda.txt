@@ -1,0 +1,2 @@
+1. Print lcd countdown only once per millisecond, not several failing times in-between
+2. Remove noise from potentiometer
