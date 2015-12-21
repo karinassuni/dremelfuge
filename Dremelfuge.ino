@@ -41,7 +41,7 @@ void setup()
   const uint8_t LCD_COLUMNS = 20, LCD_ROWS = 4;
 
   wpb.begin();
-  wpb.turnLEDOn();
+  wpb.turnLEDOn();                //
 
   pinMode(MOTOR_PIN, OUTPUT);
   pinMode(POT_PIN, INPUT);
@@ -59,10 +59,24 @@ void setup()
 
 void loop()
 {
-                                                      //*** static local variables--i.e. static variables inside of functions--are NOT STACK VARIABLES;
-                                                      //    their values persist even after function ends, as long as the program is still running
-                                                      //*** also, static local variables still only have local scope
-                                                      //*** perform operations with data of the same type, so as to boost performance by not needing to typecast
+  /* Explanation of static keyword in C++:
+   3 types of things can be static: (local) function variables, & class
+   member data (variables and functions--functions = pointer to address of
+   instructions). But `static` gets implemented the same way in each. There
+   exists special memory segments called DATA and BSS (which is just DATA but
+   for uninitialized data). At compile, global and `static` data are each *given
+   their own addresses within DATA or BSS, addresses where they will live (be
+   stored at) forever.* *When the program first runs, BEFORE main(), global and
+   `static` data are initialized to whatever value you set in source code*--you
+   can see this in the Assembly code. If you only declared global or `static`
+   data, then they will be initialized to 0 and placed in BSS. `static` data is
+   not deallocated when out of scope--*its address is permanent, and though the
+   values that live there may change, those values will never be erased (as long
+   as the program is running).* Of course, that `static` data can only be
+   accessed when it's within scope, making it much safer than similar global data.
+  */
+
+                                                      //*** perform operations with data of the same type, so as to boost performance by not needing to implicitly typecast
   static unsigned long setDuration;                   // the duration that the centrifuge should run
   static unsigned long spinningStartTime;             // point on the timeline where the countdown starts, i.e. when wpb is pressed the second time
   static uint8_t motorSpeed;
@@ -142,6 +156,7 @@ void loop()
         lcd.setCursor(0, 1);
         lcd.print(F("Finished in: "));
         changedUIString = true;
+        Serial.println("reached only once");
       }
 
       unsigned long secondsLeft = (setDuration - (millis() - spinningStartTime))/1000;  //*** save RAM AND flash memory by only doing this calculation once per case in loop()
