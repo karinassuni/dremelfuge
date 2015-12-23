@@ -9,6 +9,7 @@ Compiled and Edited by: Albert Ju, Fu Yang Chin
                                                         // because it's inside of Arduino.app use <> DIRECTIVE
 #include "LEDButton.h"                                  // include custom library which is in the same directory as this file
                                                         // because it's a relative path, use "" LITERAL PATHNAME
+#include "karina_utility.cpp"                           // for void printfSecs(unsigned long seconds, T& t)
 
 //============================GLOBAL VARIABLES=================================//
 /* *** These variables MUST be global because they're being used by multiple
@@ -39,7 +40,6 @@ namespace
     /* It's good practice to define the prototypes yourself, rather than letting
       the compiler auto-generate them for you
       */
-    inline void lcdPrintFormattedSecs(unsigned long seconds);
 } // namespace
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -181,7 +181,7 @@ void loop()
                         0, 1024, 0, 901);
 
       lcd.setCursor(11, 1);
-      lcdPrintFormattedSecs(setDuration);
+      printfSecs(setDuration, lcd);
       lcd.print(F(">   "));
 
       if(wpb.pressed())
@@ -194,7 +194,7 @@ void loop()
 
         // Erase <> selector braces:
         lcd.setCursor(10, 1);
-        lcdPrintFormattedSecs(setDuration);
+        printfSecs(setDuration, lcd);
         lcd.print(F("    "));
 
         /* To save space, the ATmega328P chip of UNO uses 2-byte ints, which can
@@ -262,7 +262,7 @@ void loop()
       (setDuration - (millis() - spinningStartTime))/1000;
 
       lcd.setCursor(13, 1);
-      lcdPrintFormattedSecs(secondsLeft);
+      printfSecs(secondsLeft, lcd);
       lcd.print(F("  "));
 
       if(wpb.pressed() || secondsLeft == 0)
@@ -275,12 +275,3 @@ void loop()
     } // case Mode::SPINNING
   } // switch(mode)
 } // void loop()
-
-/* `inline` = suggestion to the compiler to paste the raw code of this function
-  wherever it's called == performance optimization, no hopping pointers to callers
-  and callbacks
-  */
-inline void lcdPrintFormattedSecs(unsigned long seconds)
-{
-  lcd.print(seconds/60); lcd.print(F(":")); lcd.print((seconds%60 < 10 ? F("0") : F(""))); lcd.print(seconds%60);
-}
