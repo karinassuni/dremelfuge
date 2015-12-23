@@ -54,8 +54,28 @@ void setup()
   pinMode(POT_PIN, INPUT);
 
   lcd.begin(LCD_COLUMNS, LCD_ROWS);
+  /* On `F()`, which is a macro rather than a function, and contants/literals:
+    All literals, at least in C, are obviously constants--their values can't be
+    changed during program execution--and so in the programming sense are
+    unnamed, unchangeable "variables." And, like all variables, literals are
+    stored in RAM.
+    This is a problem when dealing with string literals, which are const char
+    arrays that can take up a lot of RAM without contributing anything to the
+    program! All we want to do with string literals is print them, but they come
+    at a huge RAM cost, so does that mean that we shouldn't make any MCU projects
+    with text or GUI involved? No! Enter `F()`:
+    `F()` is a macro for AVR MCUs that tells the compiler to store string
+    literals in flash memory instead of RAM, and when it comes time to use that
+    string literal in your program, the MCU will retrieve the string literals
+    from Flash instead of RAM as well. Since variables are stored in RAM by
+    default, memory addresses in source code are also read from RAM by default,
+    so `F()` has to address both behaviors.
+    `F()` saves you a ton of RAM by storing and reading string literals (and only
+    string literals) in/from flash memory instead of in/from RAM!
+    */
+
   lcd.setCursor(0, 0);
-  lcd.print(F("  Dremel Centrifuge"));                  //*** Serial or derived functions will store their String arguments in RAM, which is wasteful; F() stores them in flash memory, where the sketch is stored (largest storage)
+  lcd.print(F("  Dremel Centrifuge"));
   lcd.setCursor(0, 2);
   lcd.print(F("Set speed:"));
   lcd.setCursor(0, 3);
@@ -75,7 +95,7 @@ void loop()
     variables are similar to keyword `static` data in that both are "statically
     allocated." This means two things: 1. globals and `static`s are *initialized
     at the start of the program, before main*, and 2. global and `static` data
-    are *given permanent memory addresses in RAM outside of the stack and heap,*
+    are *given PERMANENT memory addresses in RAM outside of the stack and heap,*
     so that a) even if a local `static` variable goes out of scope, its memory
     will not be erased because it is located separately from its collapsed
     stack frame; b) `static` class member data is shared by all (objects),
@@ -105,7 +125,7 @@ void loop()
     "internal linkage"~~
 
     Details of implementation--compiler and processor specific, but generally:
-    The compiler assigns permanent RAM addresses to global & static variables
+    The compiler assigns *permanent* RAM addresses to global & static variables
     at compile time, creating machine code instructions for the processor to
     initialize each address with each variable's initial value as written in
     source code. In particular, these permanent RAM addresses will lie in special
@@ -120,9 +140,12 @@ void loop()
     where the actual program is also stored. Flash memory is non-volatile
     read/write, meaning that data within it is not erased when the power is off,
     unlike RAM. For faster processing of this `static` and global data, at
-    runtime it will be copied to RAM, into DATA/BSS.
+    runtime *it will be COPIED TO RAM*, into DATA/BSS.
     (This is different from most modern PCs, where instructions are stored in the
     hard drive but loaded into RAM when run).
+    All variable data in C++ is stored in RAM by default-it's just that variables
+    with different modifiers and scopes and allocations will be stored in
+    different areas of RAM and by different means.
     */
 
   enum class Mode
