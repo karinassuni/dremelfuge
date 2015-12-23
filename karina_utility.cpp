@@ -35,6 +35,4 @@ inline namespace
     t.print(seconds%60);
   } // void printfSecs()
 
-
-
 } // inline namespace

@@ -1,10 +1,13 @@
 Button	KEYWORD1
-begin	KEYWORD2
 setDebounceDelay	KEYWORD2
 pressed	KEYWORD2
 toggleWhenPressed	KEYWORD2
 isHeld	KEYWORD2
+
 LEDButton	KEYWORD1
 turnLEDOn	KEYWORD2
 turnLEDOff	KEYWORD2
 toggleLED	KEYWORD2
+
+printfSecs KEYWORD2
+millisToFSecs KEYWORD2

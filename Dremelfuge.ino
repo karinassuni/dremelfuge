@@ -77,7 +77,7 @@ void setup()
   lcd.setCursor(0, 0);
   lcd.print(F("  Dremel Centrifuge"));
   lcd.setCursor(0, 2);
-  lcd.print(F("Set speed:"));
+  lcd.print(F("Set speed: ___"));
   lcd.setCursor(0, 3);
   lcd.print(F("   Push to Start!"));
 
@@ -254,8 +254,9 @@ void loop()
 
         lcd.setCursor(0, 1);
         lcd.print(F("Finished in: "));
+        lcd.setCursor(0, 3);
+        lcd.print(F("    Push to Start!"));
         changedUIString = true;
-        Serial.println("reached only once");
       } // if(!changedIUIString)
 
       unsigned long secondsLeft =                       // save RAM by only doing this calculation only once per loop()::SPINNING
