@@ -171,6 +171,8 @@ void loop()
       {
         lcd.setCursor(0, 1);
         lcd.print(F("Set time: <"));
+        lcd.setCursor(0, 3);
+        lcd.print(F("   Push to Start!"));
         changedUIString = true;
         /* This block becomes unreachable after this, because this true value is
           remembered; therefore block only done once, when case first entered
@@ -255,7 +257,8 @@ void loop()
         lcd.setCursor(0, 1);
         lcd.print(F("Finished in: "));
         lcd.setCursor(0, 3);
-        lcd.print(F("    Push to Start!"));
+        lcd.print(F("    Push to Stop!"));
+
         changedUIString = true;
       } // if(!changedIUIString)
 
