@@ -3,6 +3,10 @@ Dremelfuge ETC Project 2015-2016
 Adapted from Orlov's Instructable on Arduino Powered Centrifuge
 
 Compiled and Edited by: Albert Ju, Fu Yang Chin
+
+Uploaded to an Arduino UNO, with MCU ATmega328P-PU.
+Arduino UNO specs: https://www.arduino.cc/en/Main/ArduinoBoardUno
+ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 */
 
 #include <LiquidCrystal.h>                              // include the library for the display;
@@ -10,7 +14,7 @@ Compiled and Edited by: Albert Ju, Fu Yang Chin
 #include "LEDButton.h"                                  // include custom library which is in the same directory as this file
                                                         // because it's a relative path, use "" LITERAL PATHNAME
 #include "karina_utility.cpp"                           // for void printfSecs(unsigned long seconds, T& t)
-#include <avr/interrupt.h>                              // for interrupts
+
 //============================GLOBAL VARIABLES=================================//
 /* *** These variables MUST be global because they're being used by multiple
   totally separate functions--static local won't do
@@ -23,8 +27,6 @@ Compiled and Edited by: Albert Ju, Fu Yang Chin
 
 namespace
 {
-    long unsigned int currentSecs = 0;                            // current time in secs, overflows if Dremelfuge on for 18.2 hours
-
     LiquidCrystal lcd
     = LiquidCrystal(12, 11, 5, 4, 3, 6);                // initialize LC object with the numbers of the interface pins
 
@@ -82,152 +84,9 @@ void setup()
   lcd.setCursor(0, 3);
   lcd.print(F("   Push to "));
 
-  /* Explanation of timer interrupts and applications of bit operations:
-    An interrupt is a special type of user-defined event; interrupts occur either
-    when a timer reaches a certain value (timer interrupts), or when a pin
-    changes state (external interrupts). This block will focus on timer
-    interrupts. Note that the terms "interrupt" as an event and
-    "Interrupt Service Routine (ISR)," which is the function that is run when an
-    interrupt occurs, are used almost interchangeably.
+  // Timer interrupt implementation + explanation removed; see commit f587[...]
 
-    "n" = timer number; Timer0, Timer1, ...
-    "x" = A or B, in the context of named regisers.
-    Registers are a small but very quickly-accessed memory location that reside
-    on the processor itself. Registers store special values that need to be read
-    and/or written very quickly.
-    ----------
-
-    MCUs have built-in timers. Timers are just modules used to measure time,
-    physically via the oscillation of Voltage storage in a capacitor-inductor
-    circuit, like an electric pendulum. To utilize this physical process in a
-    MCU, the timer circuit has many additional components: a counter register
-    whose value increments with each tick, a output comparison register whose
-    value is compared with the counter on every tick to let the programmer time
-    events, prescalers to change the frequency of the timer ticks, and a wave
-    generation module that can use the timer to produce various waveforms through
-    PWM, to name some main ones.
-
-    Timers have 2 primary modes of operation: 1) increment from 0 until a TOP
-    value is reached, and then reset to 0; 2) increment from 0 until a TOP value
-    is reached, and then decrement back down to 0. These are the main attributes
-    of the non-PWM and PWM modes, respectively. Generally, the latter should be
-    used for timing events, while the former should be used for PWM.
-    We shall pay special attention to the non-PWM modes for this project. There
-    are two non-PWM modes: Normal and CTC (Clear Timer on Compare match). In
-    Normal mode, *TCNTn (the register that holds the Timer CouNT) *keeps
-    incrementing until it overflows.** On the same tick (clock cycle) that
-    overflow occurs, the Timer/Counter Overflow flag (TOVn) is raised. In CTC
-    mode, TCNTn increments until a specific, user-set value is reached, at which
-    point TCNTn is cleared (set to 0). This user-set value is stored in OCRnx
-    (Output Compare Register nA or nB). Every single clock cycle, the value of
-    TCNTn is compared with OCRnx. On the clock cycle after the comparison returns
-    true, the corresponding OCFnx (Output Compare Flag) is raised. However, an
-    additional clock cycle must be spent clearing TCNTn, unlike Normal mode--this
-    represents a one-tick delay that must be taken into account in timing
-    calculations.
-    You _could_ use interrupts through Output Comparison on Normal mode just like
-    in CTC mode, but the calculation is comparatively not straightforward, so
-    using CTC mode is easier in most cases.
-
-    What determines the frequency of each tick? The clock cycle does! While AVRs
-    have a builtin system clock, whose processor speed determines its system
-    clock frequency, you can use unitless "prescalers" to change the clock
-    speed/tick frequency of individual timers. Using a timer without prescalers
-    would mean using the system clock speed, which is way too fast for many
-    practical purposes. Prescalers effectively give individual timers slower
-    clocks. These prescaled clocks will be slower than the system clock by
-    factors of 2--that is,
-    [frequency of prescaled clock = system clock frequency/pow(2, n)].
-    Prescalars are "system clock-dividers."
-    You can select between different prescalers in the TCCRnB bit string.
-
-    There are two Timer/Counter Control Registers, TCCRnA and TCCRnB, which
-    are bit strings whose different bit values correspond to the different Timer
-    settings: mode (set by WGMy Waveform Generation Mode bits in TCCRnA and
-    TCCRnB), whether/how to change the outputs of external pins (OCnx) when OCFnx
-    flags are raised (set by COMnxy COMpare match output mode bits in TCCRnA),
-    and what if any prescaler value to use (CSny bits in TCCRnB). All
-    combinations of modes and prescalers and output comparisons are valid.
-    Additionally, you can have up to 2 Output Control Registers, i.e. up to 2
-    values that the Timer is checked against every tick and that can ultimately
-    cause ISRs. These are OCRnA and OCRnB; "x" denotes a bit corresponding to
-    either OCR.
-    See the appropriate Atmel AVR datasheet for details on bit string layout.
-
-    Details of implementation:
-    An interrupt service routine (ISR) is a function that runs when an interrupt
-    flag is raised, i.e. ISRs are run when "interrupts" occur.
-    An interrupt flag is a bit that keeps track of whether a timer event has
-    occurred (1) or not (0). A timer event is either overflow (w/ flag TOVn) or
-    a successful comparison of the timer with the value in the output compare
-    register (when TCNTn == OCRnx, OCFnx is raised).
-    Interrupt flags are stored in interrupt flag registers. One interrupt flag
-    register is used for each timer. The value of/in an interrupt flag register
-    is a bit string whose bits correspond to which flags have been raised.
-
-    A timer mask (TIMSKn) is a string of bits that determines *which timer events
-    to pay attention to*, i.e. *which flags can trigger ISRs*, i.e. "which
-    interrupts are activated/attached." A bit set to 1 in TIMSKn means that that
-    associated flag will not be masked off, so that if that flag is raised, its
-    corresponding ISR will run automatically.
-    The bit masking is done behind the scenes, probably taken care of through
-    the configuration of the Timer circuit itself.
-
-    Bit concepts:
-    Generally, a bit mask is a string of *bits used to extract bit values of
-    interest from other bit strings,* usually by binary AND (&) in a process
-    called "masking off" the other bits outside the mask, or sometimes by binary
-    OR (|) in a process called "masking on" the other bits outside the mask.
-    When we set the bits in TIMSKn, we're "building a bit mask," determining
-    which bit values are of interest.
-
-    A bit value is meaningless without the context of where that bit value lies
-    in a bit string. This is especially true of bits inside registers used for
-    special purposes: "You have a 1? THAT'S GREAT. But where is it? What does
-    that 1 MEAN? How am I supposed to know what this 1 means when I don't know
-    where it is?"
-    When we talk of the "foo bit," we're talking about the bit value AT POSITION
-    FOO--we're talking about the state of foo. For bits, location = meaning
-    = what state the 1 or 0 alludes to.
-    That's why constants like OCIE1A are actually the values of indexes. In the
-    datasheet, the bit _AT_ OCIE1A represents the STATE _OF_ OCIE1A.
-
-    Reference for knowledge but incorrect datasheet:
-    http://www.atmel.com/Images/doc8025.pdf
-    */
-  // ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
-
-  cli();                                                // disable interrupts while setting up timers--CLear Interrupts
-  TIMSK1 = (1 << OCIE1A);                               // set the OCIE1A bit in TIMSK1 to 1, Enabling OC Interrupts w/ OCR1A
-  TCCR1B = (1 << WGM12);                                // enable CTC mode as specified in the datasheet
-  TCCR1A = 0;                                           // MAKE SURE THAT THE SETTINGS IN THIS MODE ARE CORRECTLY SET TO 0 AS WELL
-
-  /* Calculation of settings producing a Timer1 Output Compare Interrupt every 1s
-    ATmega328P-PU clock speed = 16MHz = 16 000 000 Hz = ticks per second
-    Want ISR every 1 second
-    Prescalar is unitless, divides internal clock speed for smaller Timer clock speed
-    highest prescalar = 1024
-    16 000 000 Hz / 1024 = 15 625 Hz = 0.000064 s per tick with prescalar 1024
-    1 tick = 1 increment
-    (x increments + 1 tick for reset) * 0.000064 s per increment ~= 1 second per x increments with prescalar 1024
-    x = 15 624 increments aka ticks with prescalar 1024
-    */
-
-  TCCR1B |= (1 << CS12) | (1 << CS10);                  // use 1024 prescalar for Timer1; OR combines both CS bits, |= appends old!
-  OCR1A = 15624;                                        // Output Compare Register value that raises a flag every 1s w/ this Timer1
-  sei();                                                // enable interrupts now that timers set up--SEt Interrupts
-
-  Serial.begin(9600);
-  TCNT1 = 0;                                            // set Timer/Counter 1 to 0
 } // void setup()
-
-/* While spinning, only update LCD every 1s--don't waste SRAM updating LCD before
-  the time can even change
-  */
-ISR(TIMER1_COMPA_vect)                                  // Interrupt Service Routine that runs when OC unit 1A raises its flag
-{
-  currentSecs++;                                        // incremented every 1s, so its value truly reflects time since prog started
-} // ISR(SIG_OUTPUT_COMPARE1A)
 
 /////////////////////////////////////////////////////////////////////////////////
 void loop()
@@ -292,6 +151,7 @@ void loop()
     with different modifiers and scopes and allocations will be stored in
     different areas of RAM and by different means.
     */
+
   enum class Mode
   {
     SETTING_TIME,
@@ -416,14 +276,15 @@ void loop()
       /* Save SRAM by doing this calculation only once per loop()::SPINNING (by
         saving the result in a variable)
         */
-      unsigned long secondsLeft =
-      (setDuration - (millis() - spinningStartTime))/1000;
+      unsigned long timeLeft =                          // need timeLeft in ms so as to get a precise duration for the centrifuge
+      (setDuration - (millis() - spinningStartTime));
 
       lcd.setCursor(13, 1);
-      printfSecs(secondsLeft, lcd);
+      printfSecs(timeLeft/1000, lcd);                   // timeLeft in ms, printing secs; inconsistent _display_ results due to int
+                                                        // division, but this case block truly does last as long as timeLeft
       lcd.print(F("  "));
 
-      if(wpb.pressed() || secondsLeft == 0)
+      if(wpb.pressed() || timeLeft <= 0)                // `<=` because the delay between instructions may cause millis => -timeLeft
       {
         digitalWrite(MOTOR_PIN, LOW);
         changedUIString = false;                        // UI string will be changed back!
