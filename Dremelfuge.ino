@@ -10,7 +10,7 @@ Compiled and Edited by: Albert Ju, Fu Yang Chin
 #include "LEDButton.h"                                  // include custom library which is in the same directory as this file
                                                         // because it's a relative path, use "" LITERAL PATHNAME
 #include "karina_utility.cpp"                           // for void printfSecs(unsigned long seconds, T& t)
-#include <avr/interrupt.h>
+#include <avr/interrupt.h>                              // for interrupts
 //============================GLOBAL VARIABLES=================================//
 /* *** These variables MUST be global because they're being used by multiple
   totally separate functions--static local won't do
@@ -23,8 +23,10 @@ Compiled and Edited by: Albert Ju, Fu Yang Chin
 
 namespace
 {
+    long unsigned int currentSecs = 0;                            // current time in secs, overflows if Dremelfuge on for 18.2 hours
+
     LiquidCrystal lcd
-    = LiquidCrystal(12, 11, 5, 4, 3, 6);                  // initialize LC object with the numbers of the interface pins
+    = LiquidCrystal(12, 11, 5, 4, 3, 6);                // initialize LC object with the numbers of the interface pins
 
     // White Pushbutton
     const uint8_t WPB_IN_PIN = 2, WPB_LED_PIN = 13;
@@ -34,7 +36,6 @@ namespace
 
     const uint8_t MOTOR_PIN = 9;
     const uint8_t POT_PIN = A5;
-
 
     //Function prototypes
     /* It's good practice to define the prototypes yourself, rather than letting
@@ -130,12 +131,14 @@ void setup()
 
     What determines the frequency of each tick? The clock cycle does! While AVRs
     have a builtin system clock, whose processor speed determines its system
-    clock frequency, you can use "prescalers" to change the clock speed/tick
-    frequency of individual timers. Using a timer without prescalers would mean
-    using the system clock speed, which is way too fast for many practical
-    purposes. Prescalers effectively give individual timers slower clocks.
-    These prescaled clocks will be slower than the system clock by factors of 2--
-    that is, [frequency of prescaled clock = system clock frequency/pow(2, n)].
+    clock frequency, you can use unitless "prescalers" to change the clock
+    speed/tick frequency of individual timers. Using a timer without prescalers
+    would mean using the system clock speed, which is way too fast for many
+    practical purposes. Prescalers effectively give individual timers slower
+    clocks. These prescaled clocks will be slower than the system clock by
+    factors of 2--that is,
+    [frequency of prescaled clock = system clock frequency/pow(2, n)].
+    Prescalars are "system clock-dividers."
     You can select between different prescalers in the TCCRnB bit string.
 
     There are two Timer/Counter Control Registers, TCCRnA and TCCRnB, which
@@ -192,11 +195,39 @@ void setup()
     Reference for knowledge but incorrect datasheet:
     http://www.atmel.com/Images/doc8025.pdf
     */
+  // ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 
-  TIMSK1 = (1 << OCIE1A);
+  cli();                                                // disable interrupts while setting up timers--CLear Interrupts
+  TIMSK1 = (1 << OCIE1A);                               // set the OCIE1A bit in TIMSK1 to 1, Enabling OC Interrupts w/ OCR1A
+  TCCR1B = (1 << WGM12);                                // enable CTC mode as specified in the datasheet
+  TCCR1A = 0;                                           // MAKE SURE THAT THE SETTINGS IN THIS MODE ARE CORRECTLY SET TO 0 AS WELL
+
+  /* Calculation of settings producing a Timer1 Output Compare Interrupt every 1s
+    ATmega328P-PU clock speed = 16MHz = 16 000 000 Hz = ticks per second
+    Want ISR every 1 second
+    Prescalar is unitless, divides internal clock speed for smaller Timer clock speed
+    highest prescalar = 1024
+    16 000 000 Hz / 1024 = 15 625 Hz = 0.000064 s per tick with prescalar 1024
+    1 tick = 1 increment
+    (x increments + 1 tick for reset) * 0.000064 s per increment ~= 1 second per x increments with prescalar 1024
+    x = 15 624 increments aka ticks with prescalar 1024
+    */
+
+  TCCR1B |= (1 << CS12) | (1 << CS10);                  // use 1024 prescalar for Timer1; OR combines both CS bits, |= appends old!
+  OCR1A = 15624;                                        // Output Compare Register value that raises a flag every 1s w/ this Timer1
+  sei();                                                // enable interrupts now that timers set up--SEt Interrupts
 
   Serial.begin(9600);
+  TCNT1 = 0;                                            // set Timer/Counter 1 to 0
 } // void setup()
+
+/* While spinning, only update LCD every 1s--don't waste SRAM updating LCD before
+  the time can even change
+  */
+ISR(TIMER1_COMPA_vect)                                  // Interrupt Service Routine that runs when OC unit 1A raises its flag
+{
+  currentSecs++;                                        // incremented every 1s, so its value truly reflects time since prog started
+} // ISR(SIG_OUTPUT_COMPARE1A)
 
 /////////////////////////////////////////////////////////////////////////////////
 void loop()
@@ -261,7 +292,6 @@ void loop()
     with different modifiers and scopes and allocations will be stored in
     different areas of RAM and by different means.
     */
-
   enum class Mode
   {
     SETTING_TIME,
@@ -269,12 +299,13 @@ void loop()
     SPINNING
   };
   static Mode mode = Mode::SETTING_TIME;                // initialization over assignment; set SETTING_TIME as the first mode!
-  /* Perform operations with data of the same type, to
-    boost performance by not needing to implicitly typecast
+  /* Perform operations with data of the same type, will boost processing speed
+    by removing implicit typecasts, but if datatype is not the smallest that can
+    hold the maximum value of that data, then this comes at a cost to SRAM.
     */
-  static unsigned long setDuration;
+  static unsigned long setDuration;                     // will be measured in ms so unsigned long is appropriate
   static unsigned long spinningStartTime;               // point in time when countdown starts i.e. when wpb pressed the 2nd time
-  static uint8_t motorSpeed;
+  static uint8_t motorSpeed;                            // uint8_t == typedef for an unsigned 8-bit integer aka a char or a byte
 
   switch(mode)
   {
@@ -314,15 +345,15 @@ void loop()
         lcd.print(F("    "));
 
         /* To save space, the ATmega328P chip of UNO uses 2-byte ints, which can
-          hold at max 32 767; operator*(int, int) will still return an int, but in
-          this case an overflowed int; initSetTime, a long, will just be assigned
-          the overflowed value--it won't force operator*(int, int) to return a long.
-          so, by typecasting 1000 or using 1000L, you make the compiler promote
-          analogRead() to a long, so operator*(long, long) will return the expected
-          value, within range of sizeof long
+          hold at max 32 767; operator*(int, int) will still return an int,
+          but in this case an overflowed int; initSetTime, a long, will just be
+          assigned the overflowed value--it won't force operator*(int, int) to
+          return a long. So, by typecasting 1000 or using 1000L, you make the
+          compiler promote analogRead() to a long, so operator*(long, long) will
+          return the expected value, within range of sizeof long.
           */
 
-        setDuration*= (long)1000;
+        setDuration *= (long)1000;
 
         changedUIString = false;
         mode = Mode::SETTING_SPEED;
@@ -366,17 +397,26 @@ void loop()
       static bool changedUIString = false;
       if(!changedUIString)
       {
+        /* analogWrite() uses PWM to emulate an analog Voltage output; to do
+          this, analogWrite() uses Timer1, which would cause a conflict with any
+          user-defined Timer1 settings. analogWrite() has precedence over
+          user-defined settings, so it would completely overwrite a custom
+          Timer1.
+          */
         analogWrite(MOTOR_PIN, motorSpeed);             // set motorSpeed once and you're done--the voltage stays there!
 
         lcd.setCursor(0, 1);
         lcd.print(F("Finished in: "));
         lcd.setCursor(11, 3);
-        lcd.print(F("Stop!"));
+        lcd.print(F("Stop! "));
 
         changedUIString = true;
       } // if(!changedIUIString)
 
-      unsigned long secondsLeft =                       // save RAM by only doing this calculation only once per loop()::SPINNING
+      /* Save SRAM by doing this calculation only once per loop()::SPINNING (by
+        saving the result in a variable)
+        */
+      unsigned long secondsLeft =
       (setDuration - (millis() - spinningStartTime))/1000;
 
       lcd.setCursor(13, 1);
@@ -388,7 +428,7 @@ void loop()
         digitalWrite(MOTOR_PIN, LOW);
         changedUIString = false;                        // UI string will be changed back!
         mode = Mode::SETTING_TIME;
-      } // if(wpb.pressed() || secondsLeft == 0)
+      } //if(wpb.pressed())
       break;
     } // case Mode::SPINNING
   } // switch(mode)
