@@ -22,7 +22,6 @@ ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
   variables and functions, as if all were declared `static` (see large comment
   in loop() for details on `static`)
   */
-
 namespace
 {
     LiquidCrystal lcd = LiquidCrystal(12, 11, 5, 4, 3, 6);                       // numbers of the interface pins
@@ -77,7 +76,7 @@ void setup()
   lcd.setCursor(0, 0);
   lcd.print(F("  Dremel Centrifuge"));
   lcd.setCursor(0, 2);
-  lcd.print(F("Set speed: ___"));
+  lcd.print(F("Set speed: ---"));
   lcd.setCursor(0, 3);
   lcd.print(F("   Push to "));
 
@@ -245,7 +244,6 @@ void loop()
         lcd.print(F("  "));
 
         spinningStartTime = millis();
-
         mode = Mode::SPINNING;
       } // if(wpb.pressed())
       break;
