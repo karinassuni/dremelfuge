@@ -168,7 +168,7 @@ void loop()
   {
     case Mode::SETTING_TIME:
     {
-      /* because changedUIString is static, its state will persist even between
+      /* because var is `static`, its state will persist even between
         other calls of loop()
       */
       static bool changedUIString = false;
@@ -225,8 +225,7 @@ void loop()
 
     case Mode::SETTING_SPEED:
     {
-      motorSpeed = map(analogRead(POT_PIN),
-                       0, 1024, 0, 255);
+      motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
 
       lcd.setCursor(11, 2);
       lcd.print(F("<"));
