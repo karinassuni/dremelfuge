@@ -34,12 +34,12 @@ bool Button::pressed()
   else
     return false;
 }
-void Button::toggleWhenPressed(bool& condition)
+const void Button::toggleWhenPressed(bool& condition)
 {
   if(pressed())
     condition ^= true;   // == condition = !condition ; using a more efficient "xor toggle"
 }
-bool Button::isHeld()
+const bool Button::isHeld()
 {
   return digitalRead(pin) == !defaultState;
 }

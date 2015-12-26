@@ -5,34 +5,35 @@
   referred to whenever their names are used," i.e. it's as if you're writing
   `using namespace thisunnamedanonymousenamespace;`
   */
-
 inline namespace
 {
-  /* `inline` for functions = suggestion to the compiler to paste the raw code of
-    this function wherever it's called == performance optimization, no hopping
-    pointers to callers and callbacks
-    */
+/* `inline` for functions = suggestion to the compiler to paste the raw code of
+  this function wherever it's called == performance optimization, no hopping
+  pointers to callers and callbacks
+  */
+// `const` params in function DECLARATION are compatible with non-const arguments:
+inline String millisToFSecs(const long& millis, const int& numDecimals);
 
-  inline String millisToFSecs(long millis, int numDecimals)
-  {
-    const int divisor = pow(10, numDecimals-1);         //*** ^ is the bitwise OR operator, so 10^(numDecimals-1) won't work
-    return String(millis/1000) + "."
-    + String(millis%1000/divisor);
+// for types whose print() inherits from Serial.print(), e.g. LiquidCrystal:
+template<typename Stream>
+inline void printfSecs(const unsigned long& seconds, Stream& stream);            // `Time left: 5:56`
 
-    /* return String("." + (millis%1000)/divisor) is bugged; i.e., adding a
-      string literal and an int is not trivial in C++ and cannot be done directly
-      through operator+
+/////////////////////////////////////////////////////////////////////////////////
 
-      call(1532 ms, 2 decimals) = 1.532 s = "1" + "." + **(remainder of 1532/1000 = 532)/(10 = 10^(2-1) = divisor) = "53"** + "s"
-      */
-  } // String millisToFSecs()
+String millisToFSecs(const long& millis, const int& numDecimals)
+{
+  const int divisor = pow(10, numDecimals-1);                                    // `^` = bitwise OR
+  return String(millis/1000) + "." + String(millis%1000/divisor);                // operator+(String, int) is invalid
+  //1.532s = "1." + (1532%1000 = 532)/(10 = 10^(2-1) = divisor) = "53" + "s"
+}
 
-  template<typename T>                                  // meant for types whose print() inherits from Serial.print()
-  inline void printfSecs(unsigned long seconds, T& t)   // typename T will take care of using LiquidCrystal lcd, or Serial
-  {
-    t.print(seconds/60); t.print(F(":"));
-    t.print((seconds%60 < 10 ? F("0") : F("")));
-    t.print(seconds%60);
-  } // void printfSecs()
+template<typename Stream>
+void printfSecs(const unsigned long& seconds, Stream& stream)
+{
+  stream.print(seconds/60);
+  stream.print(F(":"));
+  stream.print((seconds%60 < 10 ? F("0") : F("")));
+  stream.print(seconds%60);
+}
 
 } // inline namespace

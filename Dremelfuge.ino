@@ -9,11 +9,9 @@ Arduino UNO specs: https://www.arduino.cc/en/Main/ArduinoBoardUno
 ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 */
 
-#include <LiquidCrystal.h>                              // include the library for the display;
-                                                        // because it's inside of Arduino.app use <> DIRECTIVE
-#include "LEDButton.h"                                  // include custom library which is in the same directory as this file
-                                                        // because it's a relative path, use "" LITERAL PATHNAME
-#include "karina_utility.cpp"                           // for void printfSecs(unsigned long seconds, T& t)
+#include <LiquidCrystal.h>                              // library inside of Arduino.app, use <> DIRECTIVE
+#include "LEDButton.h"                                  // library not in Arduino.app but in sketch folder, use "" LITERAL PATHNAME
+#include "karina_utility.cpp"                           // for void printfSecs(unsigned long seconds, Stream& stream)
 
 //============================GLOBAL VARIABLES=================================//
 /* *** These variables MUST be global because they're being used by multiple
@@ -27,14 +25,12 @@ ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 
 namespace
 {
-    LiquidCrystal lcd
-    = LiquidCrystal(12, 11, 5, 4, 3, 6);                // initialize LC object with the numbers of the interface pins
+    LiquidCrystal lcd = LiquidCrystal(12, 11, 5, 4, 3, 6);                       // numbers of the interface pins
 
-    // White Pushbutton
+    // White PushButton
     const uint8_t WPB_IN_PIN = 2, WPB_LED_PIN = 13;
     const unsigned int WPB_DEBOUNCE_DELAY = 500;
-    LEDButton wpb
-    = LEDButton(WPB_IN_PIN, WPB_LED_PIN, WPB_DEBOUNCE_DELAY);
+    LEDButton wpb = LEDButton(WPB_IN_PIN, WPB_LED_PIN, WPB_DEBOUNCE_DELAY);      // cannot be `const`, member data will change
 
     const uint8_t MOTOR_PIN = 9;
     const uint8_t POT_PIN = A5;
@@ -57,7 +53,8 @@ void setup()
   pinMode(POT_PIN, INPUT);
 
   lcd.begin(LCD_COLUMNS, LCD_ROWS);
-  /* On `F()`, which is a macro rather than a function, and contants/literals:
+
+  /* Explanation of `F()` macro and contants/literals:
     All literals, at least in C, are obviously constants--their values can't be
     changed during program execution--and so in the programming sense are
     unnamed, unchangeable "variables." And, like all variables, literals are
@@ -67,12 +64,12 @@ void setup()
     program! All we want to do with string literals is print them, but they come
     at a huge RAM cost, so does that mean that we shouldn't make any MCU projects
     with text or GUI involved? No! Enter `F()`:
-    `F()` is a macro for AVR MCUs that tells the compiler to store string
-    literals in flash memory instead of RAM, and when it comes time to use that
-    string literal in your program, the MCU will retrieve the string literals
-    from Flash instead of RAM as well. Since variables are stored in RAM by
-    default, memory addresses in source code are also read from RAM by default,
-    so `F()` has to address both behaviors.
+    `F()` is a macro (for more complex inline code) for AVR MCUs that tells the
+    compiler to store string literals in flash memory instead of RAM, and when it
+    comes time to use that string literal in your program, the MCU will retrieve
+    the string literals from Flash instead of RAM as well. Since variables are
+    stored in RAM by default, memory addresses in source code are also read from
+    RAM by default, so `F()` has to address both behaviors.
     `F()` saves you a ton of RAM by storing and reading string literals (and only
     string literals) in/from flash memory instead of in/from RAM!
     */
@@ -163,15 +160,18 @@ void loop()
     by removing implicit typecasts, but if datatype is not the smallest that can
     hold the maximum value of that data, then this comes at a cost to SRAM.
     */
-  static unsigned long setDuration;                     // will be measured in ms so unsigned long is appropriate
+  static unsigned long setDuration;                     // measured in ms so unsigned long is appropriate
   static unsigned long spinningStartTime;               // point in time when countdown starts i.e. when wpb pressed the 2nd time
-  static uint8_t motorSpeed;                            // uint8_t == typedef for an unsigned 8-bit integer aka a char or a byte
+  static uint8_t motorSpeed;                            // uint8_t == typedef for an unsigned 8-bit integer aka a char aka a byte
 
   switch(mode)
   {
     case Mode::SETTING_TIME:
     {
-      static bool changedUIString = false;              // because changedUIString is static, its state will always persist
+      /* because changedUIString is static, its state will persist even between
+        other calls of loop()
+      */
+      static bool changedUIString = false;
       if(!changedUIString)
       {
         lcd.setCursor(0, 1);
@@ -195,8 +195,9 @@ void loop()
       {
         /* then implicitly set in stone the countdown value, change display,
           and enter next block.
-          Because mode will change, countdown will no longer be updated by pot, so
-          on switch, countdown will equal its final value, no updating necessary
+          Because mode will change, countdown will no longer be updated by pot,
+          so on switch, countdown will equal its final value, no updating
+          necessary.
           */
 
         // Erase <> selector braces:
@@ -263,7 +264,9 @@ void loop()
           user-defined settings, so it would completely overwrite a custom
           Timer1.
           */
-        analogWrite(MOTOR_PIN, motorSpeed);             // set motorSpeed once and you're done--the voltage stays there!
+
+        // set motorSpeed once and you're done--the voltage stays there!
+        analogWrite(MOTOR_PIN, motorSpeed);
 
         lcd.setCursor(0, 1);
         lcd.print(F("Finished in: "));
@@ -276,18 +279,19 @@ void loop()
       /* Save SRAM by doing this calculation only once per loop()::SPINNING (by
         saving the result in a variable)
         */
-      unsigned long timeLeft =                          // need timeLeft in ms so as to get a precise duration for the centrifuge
-      (setDuration - (millis() - spinningStartTime));
+
+      // timeLeft in secs for more consistent outward behavior--truncate ms
+      const unsigned int timeLeft =
+      (setDuration - (millis() - spinningStartTime))/1000;
 
       lcd.setCursor(13, 1);
-      printfSecs(timeLeft/1000, lcd);                   // timeLeft in ms, printing secs; inconsistent _display_ results due to int
-                                                        // division, but this case block truly does last as long as timeLeft
+      printfSecs(timeLeft, lcd);
       lcd.print(F("  "));
 
-      if(wpb.pressed() || timeLeft <= 0)                // `<=` because the delay between instructions may cause millis => -timeLeft
+      if(wpb.pressed() || timeLeft == 0)
       {
         digitalWrite(MOTOR_PIN, LOW);
-        changedUIString = false;                        // UI string will be changed back!
+        changedUIString = false;                        // UI string will be changed back in case Mode::SETTING_TIME!
         mode = Mode::SETTING_TIME;
       } //if(wpb.pressed())
       break;
