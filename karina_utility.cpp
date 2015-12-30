@@ -15,7 +15,7 @@ inline namespace
 inline String millisToFSecs(const long& millis, const int& numDecimals);
 
 // for types whose print() inherits from Serial.print(), e.g. LiquidCrystal:
-template<typename Stream>
+template <typename Stream>                              // a "template parameter declaration" declaring `Stream` a placeholder type
 inline void printfSecs(const unsigned long& seconds, Stream& stream);            // `Time left: 5:56`
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -27,7 +27,7 @@ String millisToFSecs(const long& millis, const int& numDecimals)
   //1.532s = "1." + (1532%1000 = 532)/(10 = 10^(2-1) = divisor) = "53" + "s"
 }
 
-template<typename Stream>
+template <typename Stream>                                                       // can use either `typename` or `class` keyword
 void printfSecs(const unsigned long& seconds, Stream& stream)
 {
   stream.print(seconds/60);

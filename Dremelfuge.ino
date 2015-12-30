@@ -148,7 +148,8 @@ void loop()
     different areas of RAM and by different means.
     */
 
-  enum class Mode
+  // Define a custom type, whose enumerated values are the size of `char`s
+  enum class Mode : char
   {
     SETTING_TIME,
     SETTING_SPEED,
