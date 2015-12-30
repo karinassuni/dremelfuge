@@ -1,5 +1,6 @@
 #ifndef LEDButton_h
 #define LEDButton_h
+
 #include "Arduino.h"
 #include "Button.h"
 
@@ -18,4 +19,5 @@ class LEDButton : public Button
     const void turnLEDOff();
     const void toggleLED();
 };
+
 #endif

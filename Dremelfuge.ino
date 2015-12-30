@@ -11,7 +11,7 @@ ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 
 #include <LiquidCrystal.h>                              // library inside of Arduino.app, use <> DIRECTIVE
 #include "LEDButton.h"                                  // library not in Arduino.app but in sketch folder, use "" LITERAL PATHNAME
-#include "karina_utility.cpp"                           // for void printfSecs(unsigned long seconds, Stream& stream)
+#include "karina_utility.cpp"                           // for void printFSecs(unsigned long seconds, Stream& stream)
 
 //============================GLOBAL VARIABLES=================================//
 /* *** These variables MUST be global because they're being used by multiple
@@ -188,7 +188,7 @@ void loop()
                         0, 1024, 0, 901);
 
       lcd.setCursor(11, 1);
-      printfSecs(setDuration, lcd);
+      printFSecs(setDuration, lcd);
       lcd.print(F(">   "));
 
       if(wpb.pressed())
@@ -202,7 +202,7 @@ void loop()
 
         // Erase <> selector braces:
         lcd.setCursor(10, 1);
-        printfSecs(setDuration, lcd);
+        printFSecs(setDuration, lcd);
         lcd.print(F("    "));
 
         /* To save space, the ATmega328P chip of UNO uses 2-byte ints, which can
@@ -283,7 +283,7 @@ void loop()
       (setDuration - (millis() - spinningStartTime))/1000;
 
       lcd.setCursor(13, 1);
-      printfSecs(timeLeft, lcd);
+      printFSecs(timeLeft, lcd);
       lcd.print(F("  "));
 
       if(wpb.pressed() || timeLeft == 0)
