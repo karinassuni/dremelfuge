@@ -10,4 +10,4 @@ inline String millisToFSecs(const long& millis, const int& numDecimals)
   const int divisor = pow(10, numDecimals-1);                                    // `^` = bitwise OR
   return String(millis/1000) + "." + String(millis%1000/divisor);                // operator+(String, int) is invalid
   //1.532s = "1." + (1532%1000 = 532)/(10 = 10^(2-1) = divisor) = "53"
-}
+} // millisToFSecs()

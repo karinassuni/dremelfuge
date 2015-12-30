@@ -19,8 +19,8 @@ ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
   i.e., this data NEEDS to be available to ALL of the program at ALL times
   */
 /* *** The following anonymous namespace ensures internal linkage of all global
-  variables and functions, as if all were declared `static` (see large comment
-  in loop() for details on `static`)
+  variables and functions, as if all globals were declared `static` (see large
+  comment in loop() for details on `static`)
   */
 namespace
 {
@@ -169,8 +169,7 @@ void loop()
     case Mode::SETTING_TIME:
     {
       /* because var is `static`, its state will persist even between
-        other calls of loop()
-      */
+        other calls of loop() */
       static bool changedUIString = false;
       if(!changedUIString)
       {
