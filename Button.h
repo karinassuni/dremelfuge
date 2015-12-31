@@ -15,9 +15,10 @@ class Button
     unsigned long lastTimePressed;
   public:
     //NOTE: initialization list only included in .cpp
-    Button(const uint8_t pin, uint16_t debounceDelay=500);
+    Button(const uint8_t pin,
+           uint16_t debounceDelay=500);
     virtual void begin();
-    void setDebounceDelay(int debounceDelay);
+    void setDebounceDelay(uint16_t debounceDelay);
 
     bool pressed();
     const void toggleWhenPressed(bool& condition);      // `const` member fn means that this fn *will not modify `this` member data*
