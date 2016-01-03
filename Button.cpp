@@ -5,9 +5,8 @@
 Button::Button(const uint8_t pin, uint16_t debounceDelay)
 : pin(pin)
 , debounceDelay(debounceDelay)
-{
-  lastTimePressed = 0;
-} // Constructor
+, lastTimePressed(0)
+{} // Constructor
 
 /* Separated from constructor because these functions need to be called in
   setup(), and object needs global scope */

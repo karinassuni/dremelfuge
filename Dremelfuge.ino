@@ -154,7 +154,7 @@ void loop()
     SETTING_TIME,
     SETTING_SPEED,
     SPINNING
-  };
+  }; // enum class Mode
   static Mode mode = Mode::SETTING_TIME;                // initialization over assignment; set SETTING_TIME as the first mode!
   /* Perform operations with data of the same type, will boost processing speed
     by removing implicit typecasts, but if datatype is not the smallest that can
@@ -213,7 +213,7 @@ void loop()
           return the expected value, within range of sizeof long.
           */
 
-        setDuration *= (long)1000;
+        setDuration *= (unsigned long)1000;
 
         changedUIString = false;
         mode = Mode::SETTING_SPEED;
