@@ -38,20 +38,20 @@ namespace
     /* It's good practice to define the prototypes yourself, rather than letting
       the compiler auto-generate them for you
       */
+      
 } // namespace
 
 /////////////////////////////////////////////////////////////////////////////////
 void setup()
 {
   const uint8_t LCD_COLUMNS = 20, LCD_ROWS = 4;
+  lcd.begin(LCD_COLUMNS, LCD_ROWS);
 
   wpb.begin();
   wpb.turnLEDOn();
 
   pinMode(MOTOR_PIN, OUTPUT);
   pinMode(POT_PIN, INPUT);
-
-  lcd.begin(LCD_COLUMNS, LCD_ROWS);
 
   /* Explanation of `F()` macro and contants/literals:
     Note: Literals are not temporaries.
@@ -82,6 +82,7 @@ void setup()
     string literals) in/from flash memory instead of in/from RAM!
     */
 
+  // Initialize LCD UI
   lcd.setCursor(0, 0);
   lcd.print(F("  Dremel Centrifuge"));
   lcd.setCursor(0, 2);
@@ -163,23 +164,27 @@ void loop()
     SETTING_TIME,
     SETTING_SPEED,
     SPINNING
+
   }; // enum class Mode
-  static Mode mode = Mode::SETTING_TIME;                // initialization over assignment; set SETTING_TIME as the first mode!
+
+  static Mode currentMode = Mode::SETTING_TIME;         // initialization over assignment; set SETTING_TIME as the first mode!
+
   /* Perform operations with data of the same type, will boost processing speed
     by removing implicit typecasts, but if datatype is not the smallest that can
     hold the maximum value of that data, then this comes at a cost to SRAM.
     */
+
   static unsigned long setDuration;                     // measured in ms so unsigned long is appropriate
   static unsigned long spinningStartTime;               // point in time when countdown starts i.e. when wpb pressed the 2nd time
   static uint8_t motorSpeed;                            // uint8_t == typedef for an unsigned 8-bit integer aka a char aka a byte
+  static bool changedUIString = false;                  // for one-time initialization of UI for certain modes
 
   switch(mode)
   {
+
     case Mode::SETTING_TIME:
     {
-      /* because var is `static`, its state will persist even between
-        other calls of loop() */
-      static bool changedUIString = false;
+
       if(!changedUIString)
       {
         lcd.setCursor(0, 1);
@@ -188,12 +193,12 @@ void loop()
         lcd.print(F("Start!"));
         changedUIString = true;
         /* This block becomes unreachable after this, because this true value is
-          remembered; therefore block only done once, when case first entered
+          remembered; therefore block ONLY DONE ONCE, when case first entered!
           */
+
       } // if(!changedUIString)
 
-      setDuration = map(analogRead(POT_PIN),
-                        0, 1024, 0, 901);
+      setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
 
       lcd.setCursor(11, 1);
       printFSecs(setDuration, lcd);
@@ -225,14 +230,18 @@ void loop()
         setDuration *= (unsigned long)1000;
 
         changedUIString = false;
-        mode = Mode::SETTING_SPEED;
+        currentMode = Mode::SETTING_SPEED;
+
       } // if(wpb.pressed())
+
       break;
+
     } // case Mode::SETTING_TIME
 
 
     case Mode::SETTING_SPEED:
     {
+
       motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
 
       lcd.setCursor(11, 2);
@@ -253,15 +262,18 @@ void loop()
         lcd.print(F("  "));
 
         spinningStartTime = millis();
-        mode = Mode::SPINNING;
+        currentMode = Mode::SPINNING;
+
       } // if(wpb.pressed())
+
       break;
+
     } // case Mode::SETTING_SPEED
 
 
     case Mode::SPINNING:
     {
-      static bool changedUIString = false;
+
       if(!changedUIString)
       {
         /* analogWrite() uses PWM to emulate an analog Voltage output; to do
@@ -280,6 +292,7 @@ void loop()
         lcd.print(F("Stop! "));
 
         changedUIString = true;
+
       } // if(!changedIUIString)
 
       /* Save SRAM by doing this calculation only once per loop()::SPINNING (by
@@ -298,9 +311,14 @@ void loop()
       {
         digitalWrite(MOTOR_PIN, LOW);
         changedUIString = false;                        // UI string will be changed back in case Mode::SETTING_TIME!
-        mode = Mode::SETTING_TIME;
+        currentMode = Mode::SETTING_TIME;
+
       } //if(wpb.pressed())
+
       break;
+
     } // case Mode::SPINNING
+
   } // switch(mode)
+
 } // void loop()
