@@ -54,15 +54,24 @@ void setup()
   lcd.begin(LCD_COLUMNS, LCD_ROWS);
 
   /* Explanation of `F()` macro and contants/literals:
+    Note: Literals are not temporaries.
     All literals, at least in C, are obviously constants--their values can't be
     changed during program execution--and so in the programming sense are
-    unnamed, unchangeable "variables." And, like all variables, literals are
-    stored in RAM.
-    This is a problem when dealing with string literals, which are const char
-    arrays that can take up a lot of RAM without contributing anything to the
-    program! All we want to do with string literals is print them, but they come
-    at a huge RAM cost, so does that mean that we shouldn't make any MCU projects
-    with text or GUI involved? No! Enter `F()`:
+    unnamed, unchangeable "variables." And like all variables, literals are
+    stored in memory (RAM by default). However, in order for the value of a
+    literal to always be remembered each time the value is needed in the current
+    scope (in a recurring function call for instance), literals are also
+    statically allocated (see giant comment below for more info on `static`). So,
+    `int bar = 17;` is the same as `static const int foo = 17; bar = foo;`--
+    Using unnamed literals is the exact same thing as using const variables,
+    except the former is worse because literal values are unnamed and so without
+    context, making them seem "magical" where they appear.
+
+    Literals being stored in RAM is problematic when dealing with string
+    literals, which are const char arrays that can take up a lot of RAM without
+    contributing anything to the program! All we want to do with string literals
+    is to print them, but they come at a huge RAM cost, so does that mean that we
+     shouldn't make any MCU projects with text or GUI involved? No! Enter `F()`:
     `F()` is a macro (for more complex inline code) for AVR MCUs that tells the
     compiler to store string literals in flash memory instead of RAM, and when it
     comes time to use that string literal in your program, the MCU will retrieve
