@@ -8,12 +8,15 @@
 class Button
 {
   protected:
-    const uint8_t pin;
-    uint16_t debounceDelay;
+    
+    const uint8_t _pin;
+    uint16_t _debounceDelay;
 
-    bool defaultState;
-    unsigned long lastTimePressed;
+    bool _defaultState;
+    unsigned long _lastTimePressed;
+
   public:
+
     //NOTE: initialization list only included in .cpp
     Button(const uint8_t pin,
            uint16_t debounceDelay=500);
@@ -23,6 +26,7 @@ class Button
     bool pressed();
     const void toggleWhenPressed(bool& condition);      // `const` member fn means that this fn *will not modify `this` member data*
     const bool isHeld();
+
 };
 
 #endif

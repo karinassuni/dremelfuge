@@ -7,4 +7,4 @@ inline void printFSecs(const unsigned long& seconds, Stream& stream)
   stream.print(F(":"));
   stream.print((seconds%60 < 10 ? F("0") : F("")));
   stream.print(seconds%60);
-} // printFSecs()
+}

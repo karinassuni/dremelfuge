@@ -7,8 +7,11 @@
 class LEDButton : public Button
 {
   private:
-    const uint8_t ledOutPin;
+
+    const uint8_t _ledOutPin;
+
   public:
+
     // Call Button(int, int) constructor using constructor initialization list, setting inherited member data for you:
     LEDButton(const uint8_t pin,
               const uint8_t ledOutPin,
@@ -18,6 +21,7 @@ class LEDButton : public Button
     const void turnLEDOn();
     const void turnLEDOff();
     const void toggleLED();
+    
 };
 
 #endif

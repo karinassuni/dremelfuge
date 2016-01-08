@@ -7,28 +7,28 @@ LEDButton::LEDButton(const uint8_t pin,
                      const uint8_t ledOutPin,
                      uint16_t debounceDelay)
 : Button(pin, debounceDelay)
-, ledOutPin(ledOutPin)
+, _ledOutPin(ledOutPin)
 {} // Constructor
 
 void LEDButton::begin()
 {
   Button::begin();                                      // call base class version of begin()
-  pinMode(ledOutPin, OUTPUT);
-  digitalWrite(ledOutPin, LOW);                         // LED off by default
-} // begin()
+  pinMode(_ledOutPin, OUTPUT);
+  digitalWrite(_ledOutPin, LOW);                        // LED off by default
+}
 
 
 const void LEDButton::turnLEDOn()
 {
-  digitalWrite(ledOutPin, HIGH);
-} // turnLEDOn()
+  digitalWrite(_ledOutPin, HIGH);
+}
 
 const void LEDButton::turnLEDOff()
 {
-  digitalWrite(ledOutPin, LOW);
-} // turnLEDOff()
+  digitalWrite(_ledOutPin, LOW);
+}
 
 const void LEDButton::toggleLED()
 {
-  digitalWrite(ledOutPin, digitalRead(ledOutPin) ^ 1);  // bool ^ 1 == !bool, except faster; a "xor toggle"
-} // toggleLED()
+  digitalWrite(_ledOutPin, digitalRead(_ledOutPin) ^ 1);// bool ^ 1 == !bool, except faster; a "xor toggle"
+}

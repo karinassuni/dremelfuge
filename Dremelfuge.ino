@@ -22,26 +22,29 @@ ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
   variables and functions, as if all globals were declared `static` (see large
   comment in loop() for details on `static`)
   */
+
 namespace
 {
-    LiquidCrystal lcd = LiquidCrystal(12, 11, 5, 4, 3, 6);                       // numbers of the interface pins
+  LiquidCrystal lcd = LiquidCrystal(12, 11, 5, 4, 3, 6);                       // numbers of the interface pins
 
-    // White PushButton
-    const uint8_t WPB_IN_PIN = 2, WPB_LED_PIN = 13;
-    const unsigned int WPB_DEBOUNCE_DELAY = 500;
-    LEDButton wpb = LEDButton(WPB_IN_PIN, WPB_LED_PIN, WPB_DEBOUNCE_DELAY);      // cannot be `const`, member data will change
+  // White PushButton
+  const uint8_t WPB_IN_PIN = 2, WPB_LED_PIN = 13;
+  const unsigned int WPB_DEBOUNCE_DELAY = 500;
+  LEDButton wpb = LEDButton(WPB_IN_PIN, WPB_LED_PIN, WPB_DEBOUNCE_DELAY);      // cannot be `const`, member data will change
 
-    const uint8_t MOTOR_PIN = 9;
-    const uint8_t POT_PIN = A5;
+  const uint8_t MOTOR_PIN = 9;
+  const uint8_t POT_PIN = A5;
 
-    //Function prototypes
-    /* It's good practice to define the prototypes yourself, rather than letting
-      the compiler auto-generate them for you
-      */
-      
+  //Function prototypes
+
+  /* It's good practice to define the prototypes yourself, rather than letting
+    the compiler auto-generate them for you
+    */
+
 } // namespace
 
 /////////////////////////////////////////////////////////////////////////////////
+
 void setup()
 {
   const uint8_t LCD_COLUMNS = 20, LCD_ROWS = 4;
@@ -95,8 +98,10 @@ void setup()
 } // void setup()
 
 /////////////////////////////////////////////////////////////////////////////////
+
 void loop()
 {
+
   /* Explanation of `static` and statically allocated memory in C++:
 
     3 types of things can be keyword `static`: (local) function variables & class
@@ -179,19 +184,21 @@ void loop()
   static uint8_t motorSpeed;                            // uint8_t == typedef for an unsigned 8-bit integer aka a char aka a byte
   static bool changedUIString = false;                  // for one-time initialization of UI for certain modes
 
-  switch(mode)
+  switch(currentMode)
   {
 
     case Mode::SETTING_TIME:
     {
 
+      // Set mode-specific UI only once
       if(!changedUIString)
       {
         lcd.setCursor(0, 1);
-        lcd.print(F("Set time: <"));
+        lcd.print(F("Set time: "));                    // "Finished in:" => "Set time:"
         lcd.setCursor(11, 3);
-        lcd.print(F("Start!"));
+        lcd.print(F("Start!"));                         // "Push to Stop" => "Push to Start"
         changedUIString = true;
+
         /* This block becomes unreachable after this, because this true value is
           remembered; therefore block ONLY DONE ONCE, when case first entered!
           */
@@ -199,10 +206,8 @@ void loop()
       } // if(!changedUIString)
 
       setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
-
-      lcd.setCursor(11, 1);
-      printFSecs(setDuration, lcd);
-      lcd.print(F(">   "));
+      // "Set time: <15:00>"
+      lcd.setCursor(10, 1); lcd.print(F("<")); printFSecs(setDuration, lcd); lcd.print(F(">   "));
 
       if(wpb.pressed())
       {
@@ -213,23 +218,14 @@ void loop()
           necessary.
           */
 
-        // Erase <> selector braces:
+        // Erase "<>" selector braces
         lcd.setCursor(10, 1);
         printFSecs(setDuration, lcd);
         lcd.print(F("    "));
 
-        /* To save space, the ATmega328P chip of UNO uses 2-byte ints, which can
-          hold at max 32 767; operator*(int, int) will still return an int,
-          but in this case an overflowed int; initSetTime, a long, will just be
-          assigned the overflowed value--it won't force operator*(int, int) to
-          return a long. So, by typecasting 1000 or using 1000L, you make the
-          compiler promote analogRead() to a long, so operator*(long, long) will
-          return the expected value, within range of sizeof long.
-          */
+        setDuration *= 1000;                            // convert mapped time to milliseconds
 
-        setDuration *= (unsigned long)1000;
-
-        changedUIString = false;
+        changedUIString = false;                        // set back to `false` for initializing SPINNING UI later
         currentMode = Mode::SETTING_SPEED;
 
       } // if(wpb.pressed())
@@ -243,12 +239,9 @@ void loop()
     {
 
       motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
-
-      lcd.setCursor(11, 2);
-      lcd.print(F("<"));
+      // "Set speed: <255>"
+      lcd.setCursor(11, 2); lcd.print(F("<")); lcd.print(motorSpeed); lcd.print(F(">  "));
       //map printing of motorSpeed to rpm range?!
-      lcd.print(motorSpeed);
-      lcd.print(F(">  "));
 
       if(wpb.pressed())
       {
@@ -256,7 +249,7 @@ void loop()
           pre-start the countdown, and switch block
           */
 
-        // Erase <> selector braces:
+        // Erase "<>" selector braces
         lcd.setCursor(11, 2);
         lcd.print(motorSpeed);
         lcd.print(F("  "));
@@ -274,6 +267,7 @@ void loop()
     case Mode::SPINNING:
     {
 
+      // Set mode-specific UI only once
       if(!changedUIString)
       {
         /* analogWrite() uses PWM to emulate an analog Voltage output; to do
@@ -289,7 +283,7 @@ void loop()
         lcd.setCursor(0, 1);
         lcd.print(F("Finished in: "));
         lcd.setCursor(11, 3);
-        lcd.print(F("Stop! "));
+        lcd.print(F("Stop! "));                         // "Push to Start" => "Push to Stop"
 
         changedUIString = true;
 
@@ -303,9 +297,8 @@ void loop()
       const unsigned int timeLeft =
       (setDuration - (millis() - spinningStartTime))/1000;
 
-      lcd.setCursor(13, 1);
-      printFSecs(timeLeft, lcd);
-      lcd.print(F("  "));
+      // Print countdown
+      lcd.setCursor(13, 1); printFSecs(timeLeft, lcd); lcd.print(F("  "));       // print("   "); clear lingering digits
 
       if(wpb.pressed() || timeLeft == 0)
       {
