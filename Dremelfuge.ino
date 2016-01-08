@@ -25,12 +25,12 @@ ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 
 namespace
 {
-  LiquidCrystal lcd = LiquidCrystal(12, 11, 5, 4, 3, 6);                       // numbers of the interface pins
+  LiquidCrystal lcd = LiquidCrystal(12, 11, 5, 4, 3, 6);                         // numbers of the interface pins
 
   // White PushButton
   const uint8_t WPB_IN_PIN = 2, WPB_LED_PIN = 13;
   const unsigned int WPB_DEBOUNCE_DELAY = 500;
-  LEDButton wpb = LEDButton(WPB_IN_PIN, WPB_LED_PIN, WPB_DEBOUNCE_DELAY);      // cannot be `const`, member data will change
+  LEDButton wpb = LEDButton(WPB_IN_PIN, WPB_LED_PIN, WPB_DEBOUNCE_DELAY);        // cannot be `const`, member data will change
 
   const uint8_t MOTOR_PIN = 9;
   const uint8_t POT_PIN = A5;
@@ -42,6 +42,10 @@ namespace
     */
 
 } // namespace
+
+// For some reason, only works with extension .h--related to order of compilation
+#include "printers.h"                                   // relies on the existence of a variable `LiquidCrystal lcd`
+
 
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -194,7 +198,7 @@ void loop()
       if(!changedUIString)
       {
         lcd.setCursor(0, 1);
-        lcd.print(F("Set time: "));                    // "Finished in:" => "Set time:"
+        lcd.print(F("Set time: "));                     // "Finished in:" => "Set time:"
         lcd.setCursor(11, 3);
         lcd.print(F("Start!"));                         // "Push to Stop" => "Push to Start"
         changedUIString = true;
@@ -206,8 +210,10 @@ void loop()
       } // if(!changedUIString)
 
       setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
+
       // "Set time: <15:00>"
-      lcd.setCursor(10, 1); lcd.print(F("<")); printFSecs(setDuration, lcd); lcd.print(F(">   "));
+      FSecsPrinter fsecs(setDuration);
+      surroundPrint(fsecs, UI_STATE::SELECTING, 10, 1);
 
       if(wpb.pressed())
       {
@@ -219,13 +225,11 @@ void loop()
           */
 
         // Erase "<>" selector braces
-        lcd.setCursor(10, 1);
-        printFSecs(setDuration, lcd);
-        lcd.print(F("    "));
+        surroundPrint(fsecs, UI_STATE::DESELECTING, 10, 1);
 
         setDuration *= 1000;                            // convert mapped time to milliseconds
 
-        changedUIString = false;                        // set back to `false` for initializing SPINNING UI later
+        changedUIString = false;                        // set back to `false` for initializing Mode::SPINNING UI later
         currentMode = Mode::SETTING_SPEED;
 
       } // if(wpb.pressed())
@@ -239,8 +243,10 @@ void loop()
     {
 
       motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
+
       // "Set speed: <255>"
-      lcd.setCursor(11, 2); lcd.print(F("<")); lcd.print(motorSpeed); lcd.print(F(">  "));
+      NormalPrinter normal(motorSpeed);
+      surroundPrint(normal, UI_STATE::SELECTING, 11, 2);
       //map printing of motorSpeed to rpm range?!
 
       if(wpb.pressed())
@@ -250,9 +256,7 @@ void loop()
           */
 
         // Erase "<>" selector braces
-        lcd.setCursor(11, 2);
-        lcd.print(motorSpeed);
-        lcd.print(F("  "));
+        surroundPrint(normal, UI_STATE::DESELECTING, 11, 2);
 
         spinningStartTime = millis();
         currentMode = Mode::SPINNING;
@@ -289,16 +293,13 @@ void loop()
 
       } // if(!changedIUIString)
 
-      /* Save SRAM by doing this calculation only once per loop()::SPINNING (by
-        saving the result in a variable)
-        */
-
       // timeLeft in secs for more consistent outward behavior--truncate ms
       const unsigned int timeLeft =
       (setDuration - (millis() - spinningStartTime))/1000;
 
       // Print countdown
-      lcd.setCursor(13, 1); printFSecs(timeLeft, lcd); lcd.print(F("  "));       // print("   "); clear lingering digits
+      FSecsPrinter fsecs(timeLeft);
+      surroundPrint(fsecs, UI_STATE::DESELECTING, 13, 1);
 
       if(wpb.pressed() || timeLeft == 0)
       {
