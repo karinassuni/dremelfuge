@@ -11,7 +11,8 @@ ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 
 #include <LiquidCrystal.h>                              // library inside of Arduino.app, use <> DIRECTIVE
 #include "LEDButton.h"                                  // library not in Arduino.app but in sketch folder, use "" LITERAL PATHNAME
-#include "karina_utility.cpp"                           // for void printFSecs(unsigned long seconds, Stream& stream)
+#include "Printers.h"                                   // wrapper/extension class of LiquidCrystal and other Stream classes
+#include <avr/pgmspace.h>                               // contains macros for storing data in Flash instead of RAM, and fetching it
 
 //============================GLOBAL VARIABLES=================================//
 /* *** These variables MUST be global because they're being used by multiple
@@ -25,42 +26,48 @@ ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 
 namespace
 {
-  LiquidCrystal lcd = LiquidCrystal(12, 11, 5, 4, 3, 6);                         // numbers of the interface pins
-
-  // White PushButton
-  const uint8_t WPB_IN_PIN = 2, WPB_LED_PIN = 13;
-  const unsigned int WPB_DEBOUNCE_DELAY = 500;
-  LEDButton wpb = LEDButton(WPB_IN_PIN, WPB_LED_PIN, WPB_DEBOUNCE_DELAY);        // cannot be `const`, member data will change
-
   const uint8_t MOTOR_PIN = 9;
   const uint8_t POT_PIN = A5;
 
-  //Function prototypes
+  // White PushButton
+  const uint8_t WPB_IN_PIN = 2;
+  const uint8_t WPB_LED_PIN = 13;
+  const unsigned int WPB_DEBOUNCE_DELAY = 500;
+  LEDButton wpb = LEDButton(WPB_IN_PIN, WPB_LED_PIN, WPB_DEBOUNCE_DELAY);        // cannot be `const`, member data will change
 
-  /* It's good practice to define the prototypes yourself, rather than letting
-    the compiler auto-generate them for you
-    */
+  // LCD
+  LiquidCrystal lcd = LiquidCrystal(12, 11, 5, 4, 3, 6);                         // numbers of the interface pins
+  const uint8_t LCD_COLUMNS = 20;
+  const uint8_t LCD_ROWS = 4;
 
-} // namespace
+  // UI Modes - Each Mode is associated with UI Strings describing it
+  struct Mode {
 
-// For some reason, only works with extension .h--related to order of compilation
-#include "printers.h"                                   // relies on the existence of a variable `LiquidCrystal lcd`
+    /* `PROGMEM` is a macro for an attribute that tells the compiler to write
+      instructions for loading this variable into Flash memory at the start of
+      runtime.
+      `PGM_P` is a macro for the type const char* (pointer to (the start of) a
+      string), useful since it connotates that this variable is stored in Flash,
+      which clarifies for the user and helps the compiler optimize.
+      */
+    
+    PGM_P UIStrings[LCD_ROWS] PROGMEM;                  // [number of strings === number of lcd rows]
+    const uint8_t id;
 
+    enum UIStringType : char {                          // used for row indices; needs to be plain `enum` so it can be cast as `int`
+      Title = 0,
+      Time,
+      Speed,
+      Instruction
+    };
+    enum ID : char {                                    // used for `switch` statement, which only accepts `int` values
+      SETTING_TIME,
+      SETTING_SPEED,
+      SPINNING
+    };
+  }; // struct Mode
 
-/////////////////////////////////////////////////////////////////////////////////
-
-void setup()
-{
-  const uint8_t LCD_COLUMNS = 20, LCD_ROWS = 4;
-  lcd.begin(LCD_COLUMNS, LCD_ROWS);
-
-  wpb.begin();
-  wpb.turnLEDOn();
-
-  pinMode(MOTOR_PIN, OUTPUT);
-  pinMode(POT_PIN, INPUT);
-
-  /* Explanation of `F()` macro and contants/literals:
+  /* Explanation of string problem and contants/literals:
     Note: Literals are not temporaries.
     All literals, at least in C, are obviously constants--their values can't be
     changed during program execution--and so in the programming sense are
@@ -78,26 +85,65 @@ void setup()
     literals, which are const char arrays that can take up a lot of RAM without
     contributing anything to the program! All we want to do with string literals
     is to print them, but they come at a huge RAM cost, so does that mean that we
-     shouldn't make any MCU projects with text or GUI involved? No! Enter `F()`:
-    `F()` is a macro (for more complex inline code) for AVR MCUs that tells the
-    compiler to store string literals in flash memory instead of RAM, and when it
-    comes time to use that string literal in your program, the MCU will retrieve
-    the string literals from Flash instead of RAM as well. Since variables are
-    stored in RAM by default, memory addresses in source code are also read from
-    RAM by default, so `F()` has to address both behaviors.
-    `F()` saves you a ton of RAM by storing and reading string literals (and only
-    string literals) in/from flash memory instead of in/from RAM!
+    shouldn't make any MCU projects with text or GUI involved? No! There are
+    macros in avr/pgmspace.h for storing data in Flash (Program) memory and
+    retrieving it when needed.
     */
 
-  // Initialize LCD UI
-  lcd.setCursor(0, 0);
-  lcd.print(F("  Dremel Centrifuge"));
-  lcd.setCursor(0, 2);
-  lcd.print(F("Set speed: ---"));
-  lcd.setCursor(0, 3);
-  lcd.print(F("   Push to "));
+  /* UI Strings--each must be global and defined in its own variable to be stored
+    in Flash as a spacious, non-uniform 2D array of characters */
 
-  // Timer interrupt implementation + explanation removed; see commit f587[...]
+  const char titleStr[] PROGMEM      = "  Dremel Centrifuge";
+  const char setTimeStr[] PROGMEM    = "Set time: ";
+  const char setSpeedStr[] PROGMEM   = "Set speed: ---";
+  const char startStr[] PROGMEM      = "   Push to Start!";
+
+  const char finishedInStr[] PROGMEM = "Finished in: ";
+  const char stopStr[] PROGMEM       = "   Push to Stop! ";
+  const char null_str[] PROGMEM      = "";
+
+} // namespace
+
+
+
+/////////////////////////////////////////////////////////////////////////////////
+
+void setup()
+{  
+  lcd.begin(LCD_COLUMNS, LCD_ROWS);
+
+  wpb.begin();
+  wpb.turnLEDOn();
+
+  pinMode(MOTOR_PIN, OUTPUT);
+  pinMode(POT_PIN, INPUT);
+
+  digitalWrite(MOTOR_PIN, LOW);
+
+  Mode setupMode = {
+    .UIStrings =
+    {
+      titleStr,
+      null_str,
+      setSpeedStr,
+      null_str
+    },
+    .id = 0
+  };
+
+  // Initialize LCD UI
+  for(int row = 0; row < LCD_ROWS; row++) {
+    lcd.setCursor(0, row);
+
+    /* pgm_read_word implements a Load Program Memory instruction on an 8-bit RAM
+      address argument that's converted to a 16-bit Flash memory address before
+      being read and having its value returned
+      link
+      link
+      */
+
+    lcd.print( (PGM_P) pgm_read_word(&(setupMode.UIStrings[row])));
+  }
 
 } // void setup()
 
@@ -167,16 +213,77 @@ void loop()
     different areas of RAM and by different means.
     */
 
-  // Define a custom type, whose enumerated values are the size of `char`s
-  enum class Mode : char
-  {
-    SETTING_TIME,
-    SETTING_SPEED,
-    SPINNING
+  static Mode setTimeMode = {
+    .UIStrings =
+    {
+      null_str,
+      setTimeStr,
+      null_str,
+      startStr
+    },
+    .id = Mode::ID::SETTING_TIME
+  };
 
-  }; // enum class Mode
+  static Mode setSpeedMode = {
+    .UIStrings =
+    {
+      null_str,
+      null_str,
+      null_str,
+      null_str
+    },
+    .id = Mode::ID::SETTING_SPEED
+  };
 
-  static Mode currentMode = Mode::SETTING_TIME;         // initialization over assignment; set SETTING_TIME as the first mode!
+  static Mode spinningMode = {
+    .UIStrings =
+    {
+      null_str,
+      finishedInStr,
+      null_str,
+      stopStr
+    },
+    .id = Mode::ID::SPINNING
+  };
+
+  static Mode* currentModePtr = &setTimeMode;
+
+  static Printer<LiquidCrystal> lcdPrinter(&lcd);
+  static NormalPrint raw;                               // Default constructor
+  static FSecsPrint fsecs;
+
+  /* Functor that encapsulates (hides the implementation of) changing UI based
+    on the current mode */
+
+  struct UIChanger {
+
+    private:
+      bool initialized;
+      const Mode* modeBoundToPtr;
+
+    public:
+
+      UIChanger(Mode* currentModePtr)
+      : initialized(false)
+      , modeBoundToPtr(currentModePtr)
+      {}
+
+      void operator() () {
+        if(initialized)
+          return;
+
+        // 
+        lcdPrinter.replaceRow(Mode::UIStringType::Time, (PGM_P) pgm_read_word(&(modeBoundToPtr->UIStrings)));
+        lcdPrinter.replaceRow(Mode::UIStringType::Instruction, (PGM_P) pgm_read_word(&(modeBoundToPtr->UIStrings)));
+      
+        initialized = true;
+      }
+
+      void uninitialize() {
+        initialized = false;
+      }
+
+  };
 
   /* Perform operations with data of the same type, will boost processing speed
     by removing implicit typecasts, but if datatype is not the smallest that can
@@ -186,34 +293,20 @@ void loop()
   static unsigned long setDuration;                     // measured in ms so unsigned long is appropriate
   static unsigned long spinningStartTime;               // point in time when countdown starts i.e. when wpb pressed the 2nd time
   static uint8_t motorSpeed;                            // uint8_t == typedef for an unsigned 8-bit integer aka a char aka a byte
-  static bool changedUIString = false;                  // for one-time initialization of UI for certain modes
 
-  switch(currentMode)
+  switch(currentModePtr->id)
   {
 
-    case Mode::SETTING_TIME:
+    case Mode::ID::SETTING_TIME:
     {
 
-      // Set mode-specific UI only once
-      if(!changedUIString)
-      {
-        lcd.setCursor(0, 1);
-        lcd.print(F("Set time: "));                     // "Finished in:" => "Set time:"
-        lcd.setCursor(11, 3);
-        lcd.print(F("Start!"));                         // "Push to Stop" => "Push to Start"
-        changedUIString = true;
-
-        /* This block becomes unreachable after this, because this true value is
-          remembered; therefore block ONLY DONE ONCE, when case first entered!
-          */
-
-      } // if(!changedUIString)
+      static UIChanger changeUI(currentModePtr);        // how the UI is changed only once per Mode life, even that's hidden!
+      changeUI();
 
       setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
 
       // "Set time: <15:00>"
-      FSecsPrinter fsecs(setDuration);
-      surroundPrint(fsecs, UI_STATE::SELECTING, 10, 1);
+      lcdPrinter.decorationPrint(setDuration, fsecs, ValueDecor::SELECTING, 10, 1);
 
       if(wpb.pressed())
       {
@@ -225,12 +318,13 @@ void loop()
           */
 
         // Erase "<>" selector braces
-        surroundPrint(fsecs, UI_STATE::DESELECTING, 10, 1);
+        lcdPrinter.decorationPrint(setDuration, fsecs, ValueDecor::DESELECTING, 10, 1);
 
         setDuration *= 1000;                            // convert mapped time to milliseconds
 
-        changedUIString = false;                        // set back to `false` for initializing Mode::SPINNING UI later
-        currentMode = Mode::SETTING_SPEED;
+        changeUI.uninitialize();
+
+        currentModePtr = &setSpeedMode;
 
       } // if(wpb.pressed())
 
@@ -239,14 +333,13 @@ void loop()
     } // case Mode::SETTING_TIME
 
 
-    case Mode::SETTING_SPEED:
+    case Mode::ID::SETTING_SPEED:
     {
 
       motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
 
       // "Set speed: <255>"
-      NormalPrinter normal(motorSpeed);
-      surroundPrint(normal, UI_STATE::SELECTING, 11, 2);
+      lcdPrinter.decorationPrint(motorSpeed, raw, ValueDecor::SELECTING, 11, 2);
       //map printing of motorSpeed to rpm range?!
 
       if(wpb.pressed())
@@ -256,10 +349,10 @@ void loop()
           */
 
         // Erase "<>" selector braces
-        surroundPrint(normal, UI_STATE::DESELECTING, 11, 2);
+        lcdPrinter.decorationPrint(motorSpeed, raw, ValueDecor::DESELECTING, 11, 2);
 
         spinningStartTime = millis();
-        currentMode = Mode::SPINNING;
+        currentModePtr = &spinningMode;
 
       } // if(wpb.pressed())
 
@@ -268,44 +361,26 @@ void loop()
     } // case Mode::SETTING_SPEED
 
 
-    case Mode::SPINNING:
+    case Mode::ID::SPINNING:
     {
 
-      // Set mode-specific UI only once
-      if(!changedUIString)
-      {
-        /* analogWrite() uses PWM to emulate an analog Voltage output; to do
-          this, analogWrite() uses Timer1, which would cause a conflict with any
-          user-defined Timer1 settings. analogWrite() has precedence over
-          user-defined settings, so it would completely overwrite a custom
-          Timer1.
-          */
-
-        // set motorSpeed once and you're done--the voltage stays there!
-        analogWrite(MOTOR_PIN, motorSpeed);
-
-        lcd.setCursor(0, 1);
-        lcd.print(F("Finished in: "));
-        lcd.setCursor(11, 3);
-        lcd.print(F("Stop! "));                         // "Push to Start" => "Push to Stop"
-
-        changedUIString = true;
-
-      } // if(!changedIUIString)
+      static UIChanger changeUI(currentModePtr);
+      changeUI();
 
       // timeLeft in secs for more consistent outward behavior--truncate ms
-      const unsigned int timeLeft =
+      // store in a variable so that it's calculated only once
+      const unsigned long timeLeft =
       (setDuration - (millis() - spinningStartTime))/1000;
 
       // Print countdown
-      FSecsPrinter fsecs(timeLeft);
-      surroundPrint(fsecs, UI_STATE::DESELECTING, 13, 1);
+      lcd.setCursor(13, 1);
+      lcd.print(timeLeft);
 
       if(wpb.pressed() || timeLeft == 0)
       {
         digitalWrite(MOTOR_PIN, LOW);
-        changedUIString = false;                        // UI string will be changed back in case Mode::SETTING_TIME!
-        currentMode = Mode::SETTING_TIME;
+        changeUI.uninitialize();
+        currentModePtr = &setTimeMode;
 
       } //if(wpb.pressed())
 

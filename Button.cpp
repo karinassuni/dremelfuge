@@ -1,4 +1,4 @@
-#include "Arduino.h"
+#include <Arduino.h>
 #include "Button.h"
 
 // Combination of Button(byte) and Button(byte, int) constructors via default args
@@ -21,7 +21,6 @@ void Button::setDebounceDelay(uint16_t debounceDelay)
 {
   _debounceDelay = debounceDelay;
 }
-
 
 bool Button::pressed()
 {

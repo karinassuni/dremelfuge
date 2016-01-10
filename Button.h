@@ -3,7 +3,7 @@
 // define an empty token Button_h to keep track of whether the Button class was already linked:
 #define Button_h
 
-#include "Arduino.h"
+#include <Arduino.h>
 
 class Button
 {
@@ -20,6 +20,7 @@ class Button
     //NOTE: initialization list only included in .cpp
     Button(const uint8_t pin,
            uint16_t debounceDelay=500);
+
     virtual void begin();
     void setDebounceDelay(uint16_t debounceDelay);
 

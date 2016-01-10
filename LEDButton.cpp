@@ -1,5 +1,5 @@
 // Still accessing Arduino functions and constants, still need to #include--Button.h's #include Arduino.h DOES NOT APPLY:
-#include "Arduino.h"
+#include <Arduino.h>
 #include "LEDButton.h"
 
 // The exact same constructor as a regular Button, but with an LED pin:
@@ -16,7 +16,6 @@ void LEDButton::begin()
   pinMode(_ledOutPin, OUTPUT);
   digitalWrite(_ledOutPin, LOW);                        // LED off by default
 }
-
 
 const void LEDButton::turnLEDOn()
 {

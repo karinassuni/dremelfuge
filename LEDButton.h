@@ -1,7 +1,7 @@
 #ifndef LEDButton_h
 #define LEDButton_h
 
-#include "Arduino.h"
+#include <Arduino.h>
 #include "Button.h"
 
 class LEDButton : public Button
@@ -16,6 +16,7 @@ class LEDButton : public Button
     LEDButton(const uint8_t pin,
               const uint8_t ledOutPin,
               uint16_t debounceDelay=500);
+    
     void begin();
 
     const void turnLEDOn();
