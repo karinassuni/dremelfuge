@@ -1,4 +1,8 @@
 // Replace similar, repetitive lines for printing with DRY functors!
+/* If error messages are super numerous, they're most likely inaccurate: make
+  sure you're calling functions, specifying templates, putting brackets, and
+  putting parenthesis correctly FIRST!
+  */
 #ifndef printers
 #define printers
 #include <Arduino.h>
@@ -65,7 +69,8 @@ class Printer<LiquidCrystal> {
       if(decor == ValueDecor::SELECTING)
         streamPtr->print(F("<"));
 
-      printfn(value, streamPtr);
+                                                        // note: you CAN call an overriden method from a different Base class method
+      printfn(value, streamPtr);                        // when you call operator(), make sure it's `operator()()`!!!
 
       if(decor == ValueDecor::SELECTING)
         streamPtr->print(F(">"));

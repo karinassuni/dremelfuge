@@ -15,11 +15,11 @@ ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 #include <avr/pgmspace.h>                               // contains macros for storing data in Flash instead of RAM, and fetching it
 
 //============================GLOBAL VARIABLES=================================//
-/* *** These variables MUST be global because they're being used by multiple
+/* These variables MUST be global because they're being used by multiple
   totally separate functions--static local won't do
   i.e., this data NEEDS to be available to ALL of the program at ALL times
   */
-/* *** The following anonymous namespace ensures internal linkage of all global
+/* The following anonymous namespace ensures internal linkage of all global
   variables and functions, as if all globals were declared `static` (see large
   comment in loop() for details on `static`)
   */
@@ -138,8 +138,8 @@ void setup()
     /* pgm_read_word implements a Load Program Memory instruction on an 8-bit RAM
       address argument that's converted to a 16-bit Flash memory address before
       being read and having its value returned
-      link
-      link
+      http://www.atmel.com/images/doc1233.pdf
+      http://www.atmel.com/webdoc/AVRLibcReferenceManual/group__avr__pgmspace_1ga7fa92c0a662403a643859e0f33b0a182.html
       */
 
     lcd.print( (PGM_P) pgm_read_word(&(setupMode.UIStrings[row])));
