@@ -52,7 +52,7 @@ namespace
       */
     
     // Store array of 4 pointers to strings in Flash memory
-    // Note: only #rows/#strings defined--string elements can be of any length
+    // Note: strings to which pointers point aren't restricted in length
     PGM_P UIStringPtrs[LCD_ROWS] PROGMEM;
     const uint8_t id;
 
@@ -97,8 +97,14 @@ namespace
     */
 
   // UI Strings to be stored in Flash memory *as arrays of characters*
-    // Each must be defined in its own variable to be stored as entries of a
-    // non-uniform 2D array of characters
+    /* Arrays MUST be uniform, and this is accomplished by either a uniform 2D
+      array of chars, or if that's too inefficient due to too much variation in
+      string length, accomplished by a 1D array of pointers to any-length
+      strings (char arrays[] stored as variables).
+      The latter can be inefficient since you're storing and retrieving in Flash
+      an additional array, of pointers.
+      */
+
   /* char var_name[] vs char* var_name:
     `char var_name[]` is an ARRAY of characters, which is different from `char*`
     which is a POINTER TO A CHAR. The confusion arises because whenever arrays
@@ -133,8 +139,6 @@ namespace
   const char null_str[] PROGMEM      = "";
 
 } // namespace
-
-
 
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -252,7 +256,7 @@ void loop()
     */
 
   // Functor that encapsulates (hides the implementation of) changing UI ONCE
-  // per the current mode's own UIStringPtrs:
+  // per the current mode's own UIStringPtrs; extends Printer<LiquidCrystal>:
 
   struct UIChanger {
 
@@ -280,12 +284,13 @@ void loop()
           return;
 
         // Change UI based on currentMode's own UIStringPtrs, read from Flash memory
+        // Partial overwrite due to overwriteStrs that do not span the entire row
 
         // "Set time:" => "Finished in:"
-        lcdPrinter_p->replaceRow(Mode::UIStringType::Time,
+        lcdPrinter_p->overwrite(Mode::UIStringType::Time,
                               (PGM_P) pgm_read_word(&(currentModePtr->UIStringPtrs)));
         // "Push to Start!" => "Push to Stop!"
-        lcdPrinter_p->replaceRow(Mode::UIStringType::Instruction,
+        lcdPrinter_p->overwrite(Mode::UIStringType::Instruction,
                               (PGM_P) pgm_read_word(&(currentModePtr->UIStringPtrs)));
       
         initialized = true;
@@ -392,7 +397,6 @@ void loop()
       break;
 
     } // case Mode::SETTING_TIME
-
 
     case Mode::ID::SETTING_SPEED: {
 

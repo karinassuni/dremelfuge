@@ -54,14 +54,17 @@ enum class ValueDecor : char
 
 template <>
 class Printer<LiquidCrystal> {
+
   private:
     LiquidCrystal* streamPtr;
 
   public:
+
     Printer(LiquidCrystal* sPtr) : streamPtr(sPtr) {}
 
     template <typename T, class Functor>
     void decorationPrint(const T value, Functor printfn, const ValueDecor decor, const uint8_t col, const uint8_t row) {
+
       streamPtr->setCursor(col, row);
 
       if(decor == ValueDecor::SELECTING)
@@ -73,19 +76,25 @@ class Printer<LiquidCrystal> {
         streamPtr->print(F(">"));
 
       streamPtr->print(F("   "));
+
     }
 
-    void replaceRow(char rowToReplace, const char* replacementStrs) {
-      streamPtr->setCursor(0, rowToReplace);
-      streamPtr->print(replacementStrs[rowToReplace]);
+    void overwrite(char rowToOverwrite, const char* overwriteStrs) {
+
+      streamPtr->setCursor(0, rowToOverwrite);
+      streamPtr->print(overwriteStrs[rowToOverwrite]);
+
     }
-    void replace(char rowToReplace, char colToReplace, const char* replacementStrs) {
-      streamPtr->setCursor(colToReplace, rowToReplace);
-      streamPtr->print(replacementStrs[rowToReplace]);
+    void overwrite(char rowToOverwrite, char colToReplace, const char* overwriteStrs) {
+
+      streamPtr->setCursor(colToReplace, rowToOverwrite);
+      streamPtr->print(overwriteStrs[rowToOverwrite]);
+
     }
 
     friend class Print;
     friend class FSecsPrint;
+    
 };
 
 #endif
