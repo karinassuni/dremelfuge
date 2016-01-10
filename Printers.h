@@ -1,8 +1,8 @@
 // Purpose for creating this library:
   // To replace similar, repetitive lines for printing with DRY functors!
   
-#ifndef printers
-#define printers
+#ifndef Printers
+#define Printers
 #include <Arduino.h>
 
 // Functors that print values in specialized ways; plugged into Printer, used
