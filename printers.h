@@ -56,6 +56,7 @@ template <>
 class Printer<LiquidCrystal> {
 
   private:
+
     LiquidCrystal* streamPtr;
 
   public:
@@ -63,7 +64,7 @@ class Printer<LiquidCrystal> {
     Printer(LiquidCrystal* sPtr) : streamPtr(sPtr) {}
 
     template <typename T, class Functor>
-    void decorationPrint(const T value, Functor printfn, const ValueDecor decor, const uint8_t col, const uint8_t row) {
+    void decorationPrint(const T value, Functor& printfn, const ValueDecor decor, const uint8_t col, const uint8_t row) {
 
       streamPtr->setCursor(col, row);
 
@@ -76,19 +77,6 @@ class Printer<LiquidCrystal> {
         streamPtr->print(F(">"));
 
       streamPtr->print(F("   "));
-
-    }
-
-    void overwrite(char rowToOverwrite, const char* overwriteStrs) {
-
-      streamPtr->setCursor(0, rowToOverwrite);
-      streamPtr->print(overwriteStrs[rowToOverwrite]);
-
-    }
-    void overwrite(char rowToOverwrite, char colToReplace, const char* overwriteStrs) {
-
-      streamPtr->setCursor(colToReplace, rowToOverwrite);
-      streamPtr->print(overwriteStrs[rowToOverwrite]);
 
     }
 

@@ -169,6 +169,7 @@ void setup()
 
   // Initialize static (not the keyword) elements of LCD UI
   for(int row = 0; row < LCD_ROWS; row++) {
+
     lcd.setCursor(0, row);
 
     /* `pgm_read_word` implementation:
@@ -185,7 +186,8 @@ void setup()
 
     // Read and the UIStringPtrs from Flash memory, and print
     lcd.print( (PGM_P) pgm_read_word(&(setupMode.UIStringPtrs[row])));
-  }
+
+  } // for loop LCD_ROWS
 
 } // void setup()
 
@@ -256,7 +258,7 @@ void loop()
     */
 
   // Functor that encapsulates (hides the implementation of) changing UI ONCE
-  // per the current mode's own UIStringPtrs; extends Printer<LiquidCrystal>:
+  // per the current mode's own UIStringPtrs; extension of LiquidCrystal:
 
   struct UIChanger {
 
@@ -265,14 +267,14 @@ void loop()
       // Remember state of (re)initialization, so UI changes ONCE per case switch
       bool initialized;
 
-      // Remember which Printer<LiquidCrystal> to operate on
-      Printer<LiquidCrystal>* lcdPrinter_p;
+      // Remember which LiquidCrystal object to operate on
+      LiquidCrystal* lcdPtr;
 
     public:
 
       // Initialization of state
-      UIChanger(Printer<LiquidCrystal>* dPtr)
-      : lcdPrinter_p(dPtr)
+      UIChanger(LiquidCrystal* dPtr)
+      : lcdPtr(dPtr)
       , initialized(false)
       {}
 
@@ -287,12 +289,13 @@ void loop()
         // Partial overwrite due to overwriteStrs that do not span the entire row
 
         // "Set time:" => "Finished in:"
-        lcdPrinter_p->overwrite(Mode::UIStringType::Time,
-                              (PGM_P) pgm_read_word(&(currentModePtr->UIStringPtrs)));
+        lcdPtr->setCursor(0, Mode::UIStringType::Time);
+        lcdPtr->print( (PGM_P) pgm_read_word(&(currentModePtr->UIStringPtrs[Mode::UIStringType::Time])));
+
         // "Push to Start!" => "Push to Stop!"
-        lcdPrinter_p->overwrite(Mode::UIStringType::Instruction,
-                              (PGM_P) pgm_read_word(&(currentModePtr->UIStringPtrs)));
-      
+        lcdPtr->setCursor(0, Mode::UIStringType::Instruction);
+        lcdPtr->print( (PGM_P) pgm_read_word(&(currentModePtr->UIStringPtrs[Mode::UIStringType::Instruction])));
+
         initialized = true;
 
       }
@@ -346,13 +349,12 @@ void loop()
   // Extension of LiquidCystal as a Stream
   static Printer<LiquidCrystal> lcdPrinter(&lcd);
 
+  // Initialize UIChanger functor for use in each case-also extends LiquidCrystal
+  static UIChanger changeUI(&lcd);  
+
   // Functors customizing methods on lcdPrinter
   static NormalPrint raw;                               // Default constructors
   static FSecsPrint fsecs;
-
-  // Declare (and initialize) UIChanger functor for use in all `case`s
-  static UIChanger changeUI(&lcdPrinter);
-
 
   /* Perform operations with data of the same type, will boost processing speed
     by removing implicit typecasts, but if datatype is not the smallest that can
