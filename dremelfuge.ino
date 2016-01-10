@@ -377,13 +377,13 @@ void loop()
       setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
 
       // Add selector braces: "Set time: <15:00>"
-      lcdPrinter.decorationPrint(setDuration, fsecs, ValueDecor::SELECTING, 10, 1);
+      lcdPrinter.formatValue(setDuration, fsecs, ValueDecor::SELECTING, 10, 1);
 
       if(wpb.pressed())
       {
 
         // Erase "<>" selector braces
-        lcdPrinter.decorationPrint(setDuration, fsecs, ValueDecor::DESELECTING, 10, 1);
+        lcdPrinter.formatValue(setDuration, fsecs, ValueDecor::DESELECTING, 10, 1);
 
         // Convert mapped time to calculatable millis after printing from seconds
         setDuration *= 1000;                            
@@ -406,7 +406,7 @@ void loop()
       motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
 
       // Add selector braces: "Set speed: <255>"
-      lcdPrinter.decorationPrint(motorSpeed, raw, ValueDecor::SELECTING, 11, 2);
+      lcdPrinter.formatValue(motorSpeed, raw, ValueDecor::SELECTING, 11, 2);
       // Map printing of motorSpeed to rpm range?!
 
       if(wpb.pressed()) {
@@ -415,7 +415,7 @@ void loop()
         // updated in becomes unreachable
 
         // Erase "<>" selector braces
-        lcdPrinter.decorationPrint(motorSpeed, raw, ValueDecor::DESELECTING, 11, 2);
+        lcdPrinter.formatValue(motorSpeed, raw, ValueDecor::DESELECTING, 11, 2);
 
         // Change the mode for next loop() call
         currentModePtr = &spinningMode;

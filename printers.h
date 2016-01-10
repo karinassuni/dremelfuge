@@ -64,7 +64,7 @@ class Printer<LiquidCrystal> {
     Printer(LiquidCrystal* sPtr) : streamPtr(sPtr) {}
 
     template <typename T, class Functor>
-    void decorationPrint(const T value, Functor& printfn, const ValueDecor decor, const uint8_t col, const uint8_t row) {
+    void formatValue(const T value, Functor& printfn, const ValueDecor decor, const uint8_t col, const uint8_t row) {
 
       streamPtr->setCursor(col, row);
 
