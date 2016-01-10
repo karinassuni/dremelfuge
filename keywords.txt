@@ -9,5 +9,11 @@ turnLEDOn	KEYWORD2
 turnLEDOff	KEYWORD2
 toggleLED	KEYWORD2
 
-printfSecs KEYWORD2
-millisToFSecs KEYWORD2
+NormalPrint	KEYWORD1
+FSecsPrint	KEYWORD1
+Printer	KEYWORD1
+formatValue	KEYWORD2
+
+Mode	KEYWORD1
+UIChanger	KEYWORD1
+uninitialize	KEYWORD2
