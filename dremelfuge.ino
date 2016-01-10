@@ -14,8 +14,8 @@ ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 #include "Printers.h"                                   // wrapper/extension class of LiquidCrystal and other Stream classes
 #include <avr/pgmspace.h>                               // contains macros for storing data in Flash instead of RAM, and fetching it
 
-//============================GLOBAL VARIABLES=================================//
-/* These variables MUST be global because they're being used by multiple
+/*============================GLOBAL VARIABLES=================================//
+  These variables MUST be global because they're being used by multiple
   totally separate functions--static local won't do
   i.e., this data NEEDS to be available to ALL of the program at ALL times
   */
@@ -40,7 +40,7 @@ namespace
   const uint8_t LCD_COLUMNS = 20;
   const uint8_t LCD_ROWS = 4;
 
-  // UI Modes - Each Mode is associated with UI Strings describing it
+  // UI Modes - Each Mode is associated with UI Strings describing its UI
   struct Mode {
 
     /* `PROGMEM` is a macro for an attribute that tells the compiler to write
@@ -51,20 +51,26 @@ namespace
       which clarifies for the user and helps the compiler optimize.
       */
     
-    PGM_P UIStrings[LCD_ROWS] PROGMEM;                  // [number of strings === number of lcd rows]
+    // Store UIStrings pointer to string array in Flash memory
+    // Note: only #rows/#strings defined--string elements can be of any length
+    PGM_P UIStrings[LCD_ROWS] PROGMEM;
     const uint8_t id;
 
-    enum UIStringType : char {                          // used for row indices; needs to be plain `enum` so it can be cast as `int`
+    // Tie integer row indicies to meaningful names based on information layout
+    enum UIStringType : char {
       Title = 0,
       Time,
       Speed,
       Instruction
     };
-    enum ID : char {                                    // used for `switch` statement, which only accepts `int` values
+
+    // Tie UI Modes with integer IDs so that `switch` works--only accepts ints
+    enum ID : char {
       SETTING_TIME,
       SETTING_SPEED,
       SPINNING
     };
+
   }; // struct Mode
 
   /* Explanation of string problem and contants/literals:
@@ -90,14 +96,18 @@ namespace
     retrieving it when needed.
     */
 
-  /* UI Strings--each must be global and defined in its own variable to be stored
-    in Flash as a spacious, non-uniform 2D array of characters */
+  /* UI Strings to be stored in Flash memory
+    Each must be defined in its own variable to be stored as entries of a
+    non-uniform 2D array of characters
+    */
 
+  // Static (not the keyword) UI elements + UI associated with setting up Modes
   const char titleStr[] PROGMEM      = "  Dremel Centrifuge";
   const char setTimeStr[] PROGMEM    = "Set time: ";
   const char setSpeedStr[] PROGMEM   = "Set speed: ---";
   const char startStr[] PROGMEM      = "   Push to Start!";
 
+  // UI associated with SPINNING mode
   const char finishedInStr[] PROGMEM = "Finished in: ";
   const char stopStr[] PROGMEM       = "   Push to Stop! ";
   const char null_str[] PROGMEM      = "";
@@ -118,8 +128,10 @@ void setup()
   pinMode(MOTOR_PIN, OUTPUT);
   pinMode(POT_PIN, INPUT);
 
+  // Motor is OFF on startup
   digitalWrite(MOTOR_PIN, LOW);
 
+  // Associate static elements of LCD UI with a temporary Mode
   Mode setupMode = {
     .UIStrings =
     {
@@ -131,7 +143,7 @@ void setup()
     .id = 0
   };
 
-  // Initialize LCD UI
+  // Initialize static (not the keyword) elements of LCD UI
   for(int row = 0; row < LCD_ROWS; row++) {
     lcd.setCursor(0, row);
 
@@ -213,6 +225,8 @@ void loop()
     different areas of RAM and by different means.
     */
 
+  // All static--initialize structs only once, before main()
+
   static Mode setTimeMode = {
     .UIStrings =
     {
@@ -246,40 +260,55 @@ void loop()
     .id = Mode::ID::SPINNING
   };
 
+  // Initialize setTimeMode as the starting Mode
+  // Current Mode kept in a pointer so that entire struct needn't be copied
   static Mode* currentModePtr = &setTimeMode;
 
+  // Extension of LiquidCystal as a Stream
   static Printer<LiquidCrystal> lcdPrinter(&lcd);
-  static NormalPrint raw;                               // Default constructor
+
+  // Functors customizing methods on lcdPrinter
+  static NormalPrint raw;                               // Default constructors
   static FSecsPrint fsecs;
 
-  /* Functor that encapsulates (hides the implementation of) changing UI based
-    on the current mode */
+  // Functor that encapsulates (hides the implementation of) changing UI ONCE
+  // per the current mode's own UIStrings:
 
   struct UIChanger {
 
     private:
+      // Remember state of (re)initialization, so UI changes ONCE per case switch
       bool initialized;
       const Mode* modeBoundToPtr;
 
     public:
 
+      // Initialization of state
       UIChanger(Mode* currentModePtr)
       : initialized(false)
       , modeBoundToPtr(currentModePtr)
       {}
 
+      // Initialization of UI
       void operator() () {
+
+        // Don't initialize UI more than once per case entry
         if(initialized)
           return;
 
-        // 
+        // Change UI based on currentMode's own UIStrings
+
+        // "Set time:" => "Finished in:"
         lcdPrinter.replaceRow(Mode::UIStringType::Time, (PGM_P) pgm_read_word(&(modeBoundToPtr->UIStrings)));
+        // "Push to Start!" => "Push to Stop!"
         lcdPrinter.replaceRow(Mode::UIStringType::Instruction, (PGM_P) pgm_read_word(&(modeBoundToPtr->UIStrings)));
       
         initialized = true;
+
       }
 
-      void uninitialize() {
+      void bind(Mode* currentModePtr) {
+        modeBoundToPtr = currentModePtr;
         initialized = false;
       }
 
@@ -300,30 +329,31 @@ void loop()
     case Mode::ID::SETTING_TIME:
     {
 
-      static UIChanger changeUI(currentModePtr);        // how the UI is changed only once per Mode life, even that's hidden!
+      // Initialize or reinitialize (see next line) UIChanger only once (to
+      // change UI only once) per case entry; remember state of initialization
+      // through static
+      static UIChanger changeUI(currentModePtr);
       changeUI();
 
+      // Map time value from potentiometer
       setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
 
-      // "Set time: <15:00>"
+      // Add selector braces: "Set time: <15:00>"
       lcdPrinter.decorationPrint(setDuration, fsecs, ValueDecor::SELECTING, 10, 1);
 
       if(wpb.pressed())
       {
-        /* then implicitly set in stone the countdown value, change display,
-          and enter next block.
-          Because mode will change, countdown will no longer be updated by pot,
-          so on switch, countdown will equal its final value, no updating
-          necessary.
-          */
 
         // Erase "<>" selector braces
         lcdPrinter.decorationPrint(setDuration, fsecs, ValueDecor::DESELECTING, 10, 1);
 
-        setDuration *= 1000;                            // convert mapped time to milliseconds
+        // Convert mapped time to calculatable millis after printing from seconds
+        setDuration *= 1000;                            
 
+        // Allow static changeUI to reinitialize once on next entry to this case
         changeUI.uninitialize();
 
+        // Change the mode for next loop() call
         currentModePtr = &setSpeedMode;
 
       } // if(wpb.pressed())
@@ -336,23 +366,26 @@ void loop()
     case Mode::ID::SETTING_SPEED:
     {
 
+      // Map motor speed to potentiometer
       motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
 
-      // "Set speed: <255>"
+      // Add selector braces: "Set speed: <255>"
       lcdPrinter.decorationPrint(motorSpeed, raw, ValueDecor::SELECTING, 11, 2);
-      //map printing of motorSpeed to rpm range?!
+      // Map printing of motorSpeed to rpm range?!
 
       if(wpb.pressed())
       {
-        /* then implicitly set in stone the motorSpeed value, change display,
-          pre-start the countdown, and switch block
-          */
+        // motorSpeed implicitly set in stone--the only block it's able to be
+        // updated in becomes unreachable
 
         // Erase "<>" selector braces
         lcdPrinter.decorationPrint(motorSpeed, raw, ValueDecor::DESELECTING, 11, 2);
 
-        spinningStartTime = millis();
+        // Change the mode for next loop() call
         currentModePtr = &spinningMode;
+
+        // Start the counter from here, now that the mode is about to change
+        spinningStartTime = millis();
 
       } // if(wpb.pressed())
 
@@ -363,23 +396,28 @@ void loop()
 
     case Mode::ID::SPINNING:
     {
-
+      // Initialize or reinitialize UIChanger once
       static UIChanger changeUI(currentModePtr);
       changeUI();
 
-      // timeLeft in secs for more consistent outward behavior--truncate ms
-      // store in a variable so that it's calculated only once
+      // Truncate milliseconds (/1000) for more consistent displayed countdowns
+      // Store in a variable so that it's calculated only once
       const unsigned long timeLeft =
       (setDuration - (millis() - spinningStartTime))/1000;
 
-      // Print countdown
+      // Print countdown (no special functions needed)
       lcd.setCursor(13, 1);
       lcd.print(timeLeft);
 
       if(wpb.pressed() || timeLeft == 0)
       {
+        // Turn off motor
         digitalWrite(MOTOR_PIN, LOW);
+
+        // Allow static UIChanger to reinitialize once on next entry to this case
         changeUI.uninitialize();
+
+        // Change mode for next loop() call
         currentModePtr = &setTimeMode;
 
       } //if(wpb.pressed())
