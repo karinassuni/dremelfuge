@@ -48,12 +48,12 @@ namespace
       runtime.
       `PGM_P` is a macro for the type const char* (pointer to (the start of) a
       string), useful since it connotates that this variable is stored in Flash,
-      which clarifies for the user and helps the compiler optimize.
+      which clarifies for the user and helps the compiler optimize assembly code.
       */
     
-    // Store UIStrings pointer to string array in Flash memory
+    // Store array of 4 pointers to strings in Flash memory
     // Note: only #rows/#strings defined--string elements can be of any length
-    PGM_P UIStrings[LCD_ROWS] PROGMEM;
+    PGM_P UIStringPtrs[LCD_ROWS] PROGMEM;
     const uint8_t id;
 
     // Tie integer row indicies to meaningful names based on information layout
@@ -96,11 +96,31 @@ namespace
     retrieving it when needed.
     */
 
-  /* UI Strings to be stored in Flash memory
-    Each must be defined in its own variable to be stored as entries of a
-    non-uniform 2D array of characters
-    */
+  // UI Strings to be stored in Flash memory *as arrays of characters*
+    // Each must be defined in its own variable to be stored as entries of a
+    // non-uniform 2D array of characters
+  /* char var_name[] vs char* var_name:
+    `char var_name[]` is an ARRAY of characters, which is different from `char*`
+    which is a POINTER TO A CHAR. The confusion arises because whenever arrays
+    are passed, it's the address of the array's first element that's passed,
+    rather than all of its contents (this is why you need the length of an array
+    separately when iterating over an array--the only data that's passed with
+    arrays is its first element's, not its length or contents).
 
+    A char* is a pointer, so it can be initialized with the address of an
+    individual `char`, especially the address of (the first element of) an array
+    of chars. Since string literals are of type `const char[length]` (an array of
+    `char`s), you can also initialize `char*`s with literals.
+
+    Even though passed arrays are actually just char* s, the two datatypes are
+    different.
+
+    Note that for arrays, when no number is found between the braces in its
+    declaration (e.g. char array[] = "123";), the size of the array is implicitly
+    determined based on the number of elements, and only the minimum amount of
+    memory to store the full array is allocated.
+    */  
+    
   // Static (not the keyword) UI elements + UI associated with setting up Modes
   const char titleStr[] PROGMEM      = "  Dremel Centrifuge";
   const char setTimeStr[] PROGMEM    = "Set time: ";
@@ -133,9 +153,9 @@ void setup()
 
   // Associate static elements of LCD UI with a temporary Mode
   Mode setupMode = {
-    .UIStrings =
+    .UIStringPtrs =
     {
-      titleStr,
+      titleStr,  // accessing a whole array, so its (starting) address is returned
       null_str,
       setSpeedStr,
       null_str
@@ -147,14 +167,20 @@ void setup()
   for(int row = 0; row < LCD_ROWS; row++) {
     lcd.setCursor(0, row);
 
-    /* pgm_read_word implements a Load Program Memory instruction on an 8-bit RAM
+    /* `pgm_read_word` implementation:
+      Implements a Load Program Memory instruction on an 8-bit RAM
       address argument that's converted to a 16-bit Flash memory address before
-      being read and having its value returned
+      the address is read and has its stored value returned.
       http://www.atmel.com/images/doc1233.pdf
       http://www.atmel.com/webdoc/AVRLibcReferenceManual/group__avr__pgmspace_1ga7fa92c0a662403a643859e0f33b0a182.html
+
+      Need `&` because it's not just the char arrays[] that's stored in Flash,
+      but the pointers to these strings, held in UIStringPtrs, are stored in
+      Flash too. So, convert the pointer and then return its Flash data.
       */
 
-    lcd.print( (PGM_P) pgm_read_word(&(setupMode.UIStrings[row])));
+    // Read and the UIStringPtrs from Flash memory, and print
+    lcd.print( (PGM_P) pgm_read_word(&(setupMode.UIStringPtrs[row])));
   }
 
 } // void setup()
@@ -225,10 +251,58 @@ void loop()
     different areas of RAM and by different means.
     */
 
+  // Functor that encapsulates (hides the implementation of) changing UI ONCE
+  // per the current mode's own UIStringPtrs:
+
+  struct UIChanger {
+
+    private:
+
+      // Remember state of (re)initialization, so UI changes ONCE per case switch
+      bool initialized;
+
+      // Remember which Printer<LiquidCrystal> to operate on
+      Printer<LiquidCrystal>* lcdPrinter_p;
+
+    public:
+
+      // Initialization of state
+      UIChanger(Printer<LiquidCrystal>* dPtr)
+      : lcdPrinter_p(dPtr)
+      , initialized(false)
+      {}
+
+      // Initialization of UI based on current Mode
+      void operator() (Mode* currentModePtr) {
+
+        // Don't initialize UI more than once per case entry
+        if(initialized)
+          return;
+
+        // Change UI based on currentMode's own UIStringPtrs, read from Flash memory
+
+        // "Set time:" => "Finished in:"
+        lcdPrinter_p->replaceRow(Mode::UIStringType::Time,
+                              (PGM_P) pgm_read_word(&(currentModePtr->UIStringPtrs)));
+        // "Push to Start!" => "Push to Stop!"
+        lcdPrinter_p->replaceRow(Mode::UIStringType::Instruction,
+                              (PGM_P) pgm_read_word(&(currentModePtr->UIStringPtrs)));
+      
+        initialized = true;
+
+      }
+
+      // Uninitialize so that UI can be initialized only once for another case
+      void uninitialize() {
+        initialized = false;
+      }
+
+  };
+
   // All static--initialize structs only once, before main()
 
   static Mode setTimeMode = {
-    .UIStrings =
+    .UIStringPtrs =
     {
       null_str,
       setTimeStr,
@@ -239,7 +313,7 @@ void loop()
   };
 
   static Mode setSpeedMode = {
-    .UIStrings =
+    .UIStringPtrs =
     {
       null_str,
       null_str,
@@ -250,7 +324,7 @@ void loop()
   };
 
   static Mode spinningMode = {
-    .UIStrings =
+    .UIStringPtrs =
     {
       null_str,
       finishedInStr,
@@ -271,48 +345,9 @@ void loop()
   static NormalPrint raw;                               // Default constructors
   static FSecsPrint fsecs;
 
-  // Functor that encapsulates (hides the implementation of) changing UI ONCE
-  // per the current mode's own UIStrings:
+  // Declare (and initialize) UIChanger functor for use in all `case`s
+  static UIChanger changeUI(&lcdPrinter);
 
-  struct UIChanger {
-
-    private:
-      // Remember state of (re)initialization, so UI changes ONCE per case switch
-      bool initialized;
-      const Mode* modeBoundToPtr;
-
-    public:
-
-      // Initialization of state
-      UIChanger(Mode* currentModePtr)
-      : initialized(false)
-      , modeBoundToPtr(currentModePtr)
-      {}
-
-      // Initialization of UI
-      void operator() () {
-
-        // Don't initialize UI more than once per case entry
-        if(initialized)
-          return;
-
-        // Change UI based on currentMode's own UIStrings
-
-        // "Set time:" => "Finished in:"
-        lcdPrinter.replaceRow(Mode::UIStringType::Time, (PGM_P) pgm_read_word(&(modeBoundToPtr->UIStrings)));
-        // "Push to Start!" => "Push to Stop!"
-        lcdPrinter.replaceRow(Mode::UIStringType::Instruction, (PGM_P) pgm_read_word(&(modeBoundToPtr->UIStrings)));
-      
-        initialized = true;
-
-      }
-
-      void bind(Mode* currentModePtr) {
-        modeBoundToPtr = currentModePtr;
-        initialized = false;
-      }
-
-  };
 
   /* Perform operations with data of the same type, will boost processing speed
     by removing implicit typecasts, but if datatype is not the smallest that can
@@ -323,17 +358,13 @@ void loop()
   static unsigned long spinningStartTime;               // point in time when countdown starts i.e. when wpb pressed the 2nd time
   static uint8_t motorSpeed;                            // uint8_t == typedef for an unsigned 8-bit integer aka a char aka a byte
 
-  switch(currentModePtr->id)
-  {
+  switch(currentModePtr->id) {
 
-    case Mode::ID::SETTING_TIME:
-    {
+    case Mode::ID::SETTING_TIME: {
 
-      // Initialize or reinitialize (see next line) UIChanger only once (to
-      // change UI only once) per case entry; remember state of initialization
-      // through static
-      static UIChanger changeUI(currentModePtr);
-      changeUI();
+      // Initialize UI only once per case entry; state of initialization
+      // remembered due to functor being holding state and being `static`
+      changeUI(currentModePtr);
 
       // Map time value from potentiometer
       setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
@@ -350,11 +381,11 @@ void loop()
         // Convert mapped time to calculatable millis after printing from seconds
         setDuration *= 1000;                            
 
-        // Allow static changeUI to reinitialize once on next entry to this case
-        changeUI.uninitialize();
-
         // Change the mode for next loop() call
         currentModePtr = &setSpeedMode;
+
+        // Reset functor state so that another Mode's UI can be initialized once
+        changeUI.uninitialize(); 
 
       } // if(wpb.pressed())
 
@@ -363,8 +394,7 @@ void loop()
     } // case Mode::SETTING_TIME
 
 
-    case Mode::ID::SETTING_SPEED:
-    {
+    case Mode::ID::SETTING_SPEED: {
 
       // Map motor speed to potentiometer
       motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
@@ -373,8 +403,8 @@ void loop()
       lcdPrinter.decorationPrint(motorSpeed, raw, ValueDecor::SELECTING, 11, 2);
       // Map printing of motorSpeed to rpm range?!
 
-      if(wpb.pressed())
-      {
+      if(wpb.pressed()) {
+
         // motorSpeed implicitly set in stone--the only block it's able to be
         // updated in becomes unreachable
 
@@ -394,11 +424,10 @@ void loop()
     } // case Mode::SETTING_SPEED
 
 
-    case Mode::ID::SPINNING:
-    {
-      // Initialize or reinitialize UIChanger once
-      static UIChanger changeUI(currentModePtr);
-      changeUI();
+    case Mode::ID::SPINNING: {
+
+      // Change UI once
+      changeUI(currentModePtr);
 
       // Truncate milliseconds (/1000) for more consistent displayed countdowns
       // Store in a variable so that it's calculated only once
@@ -409,8 +438,8 @@ void loop()
       lcd.setCursor(13, 1);
       lcd.print(timeLeft);
 
-      if(wpb.pressed() || timeLeft == 0)
-      {
+      if(wpb.pressed() || timeLeft == 0) {
+
         // Turn off motor
         digitalWrite(MOTOR_PIN, LOW);
 

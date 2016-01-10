@@ -1,8 +1,6 @@
-// Replace similar, repetitive lines for printing with DRY functors!
-/* If error messages are super numerous, they're most likely inaccurate: make
-  sure you're calling functions, specifying templates, putting brackets, and
-  putting parenthesis correctly FIRST!
-  */
+// Purpose for creating this library:
+  // To replace similar, repetitive lines for printing with DRY functors!
+  
 #ifndef printers
 #define printers
 #include <Arduino.h>
@@ -69,8 +67,7 @@ class Printer<LiquidCrystal> {
       if(decor == ValueDecor::SELECTING)
         streamPtr->print(F("<"));
 
-                                                        // note: you CAN call an overriden method from a different Base class method
-      printfn(value, streamPtr);                        // when you call operator(), make sure it's `operator()()`!!!
+      printfn(value, streamPtr);
 
       if(decor == ValueDecor::SELECTING)
         streamPtr->print(F(">"));
@@ -92,3 +89,14 @@ class Printer<LiquidCrystal> {
 };
 
 #endif
+
+// Notes:
+  // Make sure your libraries are separate from any of their specific implementations
+
+  // When you call operator(), make sure it's `operator()()`!!!
+  // You CAN call a Derived class-overriden virtual method from a different Base class method
+
+  /* If error messages are super numerous, they're most likely inaccurate: make
+    sure you're calling functions, specifying templates, putting brackets, and
+    putting parenthesis correctly FIRST!
+    */
