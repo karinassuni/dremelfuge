@@ -261,10 +261,11 @@ void loop()
     different areas of RAM and by different means.
     */
 
+  // Alias for the verbose Mode::UIStringType type name
+  typedef Mode::UIStringType line;
+
   // Functor that encapsulates (hides the implementation of) changing UI ONCE
   // per the current mode's own UIStringPtrs; extension of LiquidCrystal:
-
-  typedef Mode::UIStringType line;
 
   struct UIChanger {
 
