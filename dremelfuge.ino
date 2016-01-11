@@ -24,6 +24,10 @@ ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
   comment in loop() for details on `static`)
   */
 
+// 1) Mode structs in PROGMEM, Mode::id in PROGMEM
+// 2) constexpr function and named variables for timeIndex and speedIndex, to be put
+// in printfval
+
 namespace
 {
   const uint8_t MOTOR_PIN = 9;
@@ -260,6 +264,8 @@ void loop()
   // Functor that encapsulates (hides the implementation of) changing UI ONCE
   // per the current mode's own UIStringPtrs; extension of LiquidCrystal:
 
+  typedef Mode::UIStringType line;
+
   struct UIChanger {
 
     private:
@@ -289,12 +295,12 @@ void loop()
         // Partial overwrite due to overwriteStrs that do not span the entire row
 
         // "Set time:" => "Finished in:"
-        lcdPtr->setCursor(0, Mode::UIStringType::Time);
-        lcdPtr->print( (PGM_P) pgm_read_word(&(currentModePtr->UIStringPtrs[Mode::UIStringType::Time])));
+        lcdPtr->setCursor(0, line::Time);
+        lcdPtr->print( (PGM_P) pgm_read_word(&(currentModePtr->UIStringPtrs[line::Time])));
 
         // "Push to Start!" => "Push to Stop!"
-        lcdPtr->setCursor(0, Mode::UIStringType::Instruction);
-        lcdPtr->print( (PGM_P) pgm_read_word(&(currentModePtr->UIStringPtrs[Mode::UIStringType::Instruction])));
+        lcdPtr->setCursor(0, line::Instruction);
+        lcdPtr->print( (PGM_P) pgm_read_word(&(currentModePtr->UIStringPtrs[line::Instruction])));
 
         initialized = true;
 
@@ -377,13 +383,15 @@ void loop()
       setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
 
       // Add selector braces: "Set time: <15:00>"
-      lcdPrinter.formatValue(setDuration, fsecs, ValueDecor::SELECTING, 10, 1);
+      lcdPrinter.formatValue(setDuration, fsecs, ValueDecor::SELECTING,
+                             10, line::Time);
 
       if(wpb.pressed())
       {
 
         // Erase "<>" selector braces
-        lcdPrinter.formatValue(setDuration, fsecs, ValueDecor::DESELECTING, 10, 1);
+        lcdPrinter.formatValue(setDuration, fsecs, ValueDecor::DESELECTING,
+                               10, line::Time);
 
         // Convert mapped time to calculatable millis after printing from seconds
         setDuration *= 1000;                            
@@ -406,7 +414,8 @@ void loop()
       motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
 
       // Add selector braces: "Set speed: <255>"
-      lcdPrinter.formatValue(motorSpeed, raw, ValueDecor::SELECTING, 11, 2);
+      lcdPrinter.formatValue(motorSpeed, raw, ValueDecor::SELECTING,
+                             11, line::Speed);
       // Map printing of motorSpeed to rpm range?!
 
       if(wpb.pressed()) {
@@ -415,7 +424,8 @@ void loop()
         // updated in becomes unreachable
 
         // Erase "<>" selector braces
-        lcdPrinter.formatValue(motorSpeed, raw, ValueDecor::DESELECTING, 11, 2);
+        lcdPrinter.formatValue(motorSpeed, raw, ValueDecor::DESELECTING,
+                               11, line::Speed);
 
         // Change the mode for next loop() call
         currentModePtr = &spinningMode;
@@ -441,7 +451,7 @@ void loop()
       (setDuration - (millis() - spinningStartTime))/1000;
 
       // Print countdown (no special functions needed)
-      lcd.setCursor(13, 1);
+      lcd.setCursor(13, line::Time);
       lcd.print(timeLeft);
 
       if(wpb.pressed() || timeLeft == 0) {
