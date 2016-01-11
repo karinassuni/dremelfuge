@@ -27,6 +27,9 @@ ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 // 1) Mode structs in PROGMEM, Mode::id in PROGMEM
 // 2) constexpr function and named variables for timeIndex and speedIndex, to be put
 // in printfval
+// 3) Define custom value decorations in THIS FILE, to be fed into lcdPrinter where
+// it will be parsed and the value will be inserted by the placement of the ' ' i.e.
+// "< >" => "<15:00>" (constexpr)
 
 namespace
 {
@@ -384,14 +387,14 @@ void loop()
       setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
 
       // Add selector braces: "Set time: <15:00>"
-      lcdPrinter.formatValue(setDuration, fsecs, ValueDecor::SELECTING,
+      lcdPrinter.printfval(setDuration, fsecs, ValueDecor::SELECTING,
                              10, line::Time);
 
       if(wpb.pressed())
       {
 
-        // Erase "<>" selector braces
-        lcdPrinter.formatValue(setDuration, fsecs, ValueDecor::DESELECTING,
+        // Overwrite "<>" selector braces
+        lcdPrinter.printfval(setDuration, fsecs, ValueDecor::DESELECTING,
                                10, line::Time);
 
         // Convert mapped time to calculatable millis after printing from seconds
@@ -415,7 +418,7 @@ void loop()
       motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
 
       // Add selector braces: "Set speed: <255>"
-      lcdPrinter.formatValue(motorSpeed, raw, ValueDecor::SELECTING,
+      lcdPrinter.printfval(motorSpeed, raw, ValueDecor::SELECTING,
                              11, line::Speed);
       // Map printing of motorSpeed to rpm range?!
 
@@ -424,8 +427,8 @@ void loop()
         // motorSpeed implicitly set in stone--the only block it's able to be
         // updated in becomes unreachable
 
-        // Erase "<>" selector braces
-        lcdPrinter.formatValue(motorSpeed, raw, ValueDecor::DESELECTING,
+        // Overwrite "<>" selector braces
+        lcdPrinter.printfval(motorSpeed, raw, ValueDecor::DESELECTING,
                                11, line::Speed);
 
         // Change the mode for next loop() call
