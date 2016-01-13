@@ -7,6 +7,9 @@ Compiled and Edited by: Albert Ju, Fu Yang Chin
 Uploaded to an Arduino UNO, with MCU ATmega328P-PU.
 Arduino UNO specs: https://www.arduino.cc/en/Main/ArduinoBoardUno
 ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
+
+Sketch uses 4,342 bytes (13%) of program storage space. Maximum is 32,256 bytes.
+Global variables use 82 bytes (4%) of dynamic memory. Maximum is 2,048 bytes.
 */
 
 #include <LiquidCrystal.h>                              // library inside of Arduino.app, use <> DIRECTIVE
