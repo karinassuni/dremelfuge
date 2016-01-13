@@ -53,9 +53,6 @@ namespace {
   NormalPrint raw;               // Default constructors
   FSecsPrint fsecs;
 
-  // Macro to prettify long line for reading and then printing to LCD from Flash
-  #define lcd_print_P(string)  lcd.print( (PGM_P) pgm_read_word( &(string) ))
-
   /* `pgm_read_word` implementation:
     Implements a Load Program Memory instruction on an 8-bit RAM
     address argument that's converted to a 16-bit Flash memory address before
@@ -135,13 +132,12 @@ namespace {
     */  
 
   // Enumeration of row indices as UI elements
-  enum line : char {
-
+  enum line : char
+  {
     Title = 0,
     Time,
     Speed,
     Instructions
-
   };
 
 } // namespace
@@ -247,13 +243,12 @@ void loop() {
     */
 
   // Define a custom type, whose enumerated values are the size of `char`s
-  enum class Mode : char {
-  
+  enum class Mode : char
+  {
     SETTING_TIME,
     SETTING_SPEED,
     SPINNING
-
-  }; // enum class Mode
+  };
 
   static Mode currentMode = Mode::SETTING_TIME;         // initialization over assignment; set SETTING_TIME as the first mode!
 
