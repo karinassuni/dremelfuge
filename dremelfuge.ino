@@ -56,18 +56,6 @@ namespace {
   NormalPrint raw;               // Default constructors
   FSecsPrint fsecs;
 
-  /* `pgm_read_word` implementation:
-    Implements a Load Program Memory instruction on an 8-bit RAM
-    address argument that's converted to a 16-bit Flash memory address before
-    the address is read and has its stored value returned.
-    http://www.atmel.com/images/doc1233.pdf
-    http://www.atmel.com/webdoc/AVRLibcReferenceManual/group__avr__pgmspace_1ga7fa92c0a662403a643859e0f33b0a182.html
-
-    Need `&` because it's not just the char arrays[] that's stored in Flash,
-    but the pointers to these strings, held in UIStringPtrs, are stored in
-    Flash too. So, convert the pointer and then return its Flash data.
-    */
-
   /* Explanation of string problem and contants/literals:
     Note: Literals are not temporaries.
     All literals, at least in C, are obviously constants--their values can't be

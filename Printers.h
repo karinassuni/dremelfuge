@@ -85,6 +85,18 @@ class Printer<LiquidCrystal> {
       streamPtr->setCursor(0, line);
       streamPtr->print( (PGM_P) pgm_read_word( &(string)));
 
+      /* `pgm_read_word` implementation:
+        Implements a Load Program Memory instruction on an 8-bit RAM
+        address argument that's converted to a 16-bit Flash memory address before
+        the address is read and has its stored value returned.
+        http://www.atmel.com/images/doc1233.pdf
+        http://www.atmel.com/webdoc/AVRLibcReferenceManual/group__avr__pgmspace_1ga7fa92c0a662403a643859e0f33b0a182.html
+
+        Need `&` because it's not just the char arrays[] that's stored in Flash,
+        but the pointers to these strings, held in UIStringPtrs, are stored in
+        Flash too. So, convert the pointer and then return its Flash data.
+        */
+
     } // void changeLine_P
 
     friend class Print;
@@ -95,6 +107,7 @@ class Printer<LiquidCrystal> {
 #endif
 
 // Notes:
+
   // Make sure your libraries are separate from any of their specific implementations
 
   // When you call operator(), make sure it's `operator()()`!!!
