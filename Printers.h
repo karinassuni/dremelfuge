@@ -42,7 +42,7 @@ class Printer {
 
     friend class Print;
     friend class FSecsPrint;
-};
+}; // class Printer
 
 enum class ValueDecor : char
 {
@@ -78,12 +78,19 @@ class Printer<LiquidCrystal> {
 
       streamPtr->print(F("   "));
 
-    }
+    } // void printfval
+
+    inline void changeLine_P(PGM_P string, uint8_t line) {
+
+      streamPtr->setCursor(0, line);
+      streamPtr->print( (PGM_P) pgm_read_word( &(string)));
+
+    } // void changeLine_P
 
     friend class Print;
     friend class FSecsPrint;
     
-};
+}; // class Printer<LiquidCrystal>
 
 #endif
 

@@ -46,6 +46,13 @@ namespace {
   const uint8_t LCD_COLUMNS = 20;
   const uint8_t LCD_ROWS = 4;
 
+  // Extension of LiquidCystal as a Stream
+  Printer<LiquidCrystal> lcdPrinter(&lcd);
+
+  // Functors customizing methods on lcdPrinter
+  NormalPrint raw;               // Default constructors
+  FSecsPrint fsecs;
+
   // Macro to prettify long line for reading and then printing to LCD from Flash
   #define lcd_print_P(string)  lcd.print( (PGM_P) pgm_read_word( &(string) ))
 
@@ -139,8 +146,16 @@ namespace {
 
 } // namespace
 
-// Function Prototypes
-inline void changeUI(PGM_P timeStr, PGM_P instructionStr);
+// Application-specific function: Time and Instructions are the only dynamic UI
+inline void changeUI(PGM_P timeStr, PGM_P instructionStr) {
+
+  // "Set time:" <=> "Finished in:"
+  lcdPrinter.changeLine_P(timeStr, line::Time);
+
+  // "Push to Start!" <=> "Push to Stop!"
+  lcdPrinter.changeLine_P(instructionStr, line::Instructions);
+
+} // void changeUI
 
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -159,14 +174,10 @@ void setup() {
 
   // Read and print the UIStrings from Flash memory
   using namespace UI;
-  lcd.setCursor(0, line::Title);
-  lcd_print_P(title);
-  lcd.setCursor(0, line::Time);
-  lcd_print_P(setTime);
-  lcd.setCursor(0, line::Speed);
-  lcd_print_P(setSpeed);
-  lcd.setCursor(0, line::Instructions);
-  lcd_print_P(pushStart);
+  lcdPrinter.changeLine_P(title, line::Title);
+  lcdPrinter.changeLine_P(setTime, line::Time);
+  lcdPrinter.changeLine_P(setSpeed, line::Speed);
+  lcdPrinter.changeLine_P(pushStart, line::Instructions); 
 
 } // void setup()
 
@@ -245,13 +256,6 @@ void loop() {
   }; // enum class Mode
 
   static Mode currentMode = Mode::SETTING_TIME;         // initialization over assignment; set SETTING_TIME as the first mode!
-
-  // Extension of LiquidCystal as a Stream
-  static Printer<LiquidCrystal> lcdPrinter(&lcd);
-
-  // Functors customizing methods on lcdPrinter
-  static NormalPrint raw;                               // Default constructors
-  static FSecsPrint fsecs;
 
   /* Perform operations with data of the same type, will boost processing speed
     by removing implicit typecasts, but if datatype is not the smallest that can
@@ -362,15 +366,3 @@ void loop() {
   } // switch(mode)
 
 } // void loop()
-
-inline void changeUI(PGM_P timeStr, PGM_P instructionStr) {
-
-  // "Set time:" <=> "Finished in:"
-  lcd.setCursor(0, line::Time);
-  lcd_print_P(timeStr);
-
-  // "Push to Start!" <=> "Push to Stop!"
-  lcd.setCursor(0, line::Instructions);
-  lcd_print_P(instructionStr);
-
-} // void changeUI
