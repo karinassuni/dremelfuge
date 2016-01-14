@@ -44,14 +44,7 @@ class Printer {
     friend class FSecsPrint;
 }; // class Printer
 
-enum class ValueDecor : char
-{
-  SELECTING,
-  DESELECTING
-};
-
-// Specialization of a hypothetical instance of the Printer template class
-
+// Specialization of a hypothetical instance of the Printer template class:
 template <>
 class Printer<LiquidCrystal> {
 
@@ -64,18 +57,23 @@ class Printer<LiquidCrystal> {
     Printer(LiquidCrystal* sPtr) : streamPtr(sPtr) {}
 
     template <typename T, class Functor>
-    void printfval(const T value, Functor& printfn, const ValueDecor decor, const uint8_t col, const uint8_t row) {
+    void printfval_P(const T value, Functor& printfn, PGM_P decorStr, const uint8_t col, const uint8_t row) {
+
+      // Note: decorStr must be a of length 2, such as "<>"; could be blank
 
       streamPtr->setCursor(col, row);
 
-      if(decor == ValueDecor::SELECTING)
-        streamPtr->print(F("<"));
+      // If not blank
+      if(decorStr)
+        this->print_P(&decorStr[0]);
 
       printfn(value, streamPtr);
 
-      if(decor == ValueDecor::SELECTING)
-        streamPtr->print(F(">"));
+      // If not blank
+      if(decorStr)
+        this->print_P(&decorStr[1]);
 
+      // Clear hanging digits
       streamPtr->print(F("   "));
 
     } // void printfval

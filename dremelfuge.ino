@@ -8,7 +8,7 @@ Uploaded to an Arduino UNO, with MCU ATmega328P-PU.
 Arduino UNO specs: https://www.arduino.cc/en/Main/ArduinoBoardUno
 ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 
-Sketch uses 4,342 bytes (13%) of program storage space. Maximum is 32,256 bytes.
+Sketch uses 4,408 bytes (13%) of program storage space. Maximum is 32,256 bytes.
 Global variables use 82 bytes (4%) of dynamic memory. Maximum is 2,048 bytes.
 */
 
@@ -117,6 +117,8 @@ namespace {
     constexpr char finishedIn[] PROGMEM = "Finished in: ";
     constexpr char pushStop[] PROGMEM   = "   Push to Stop! ";
     constexpr char nullValue[] PROGMEM  = "---";
+    constexpr char selected[] PROGMEM = "<>";
+    constexpr char deselected[] PROGMEM = "";
 
     constexpr uint8_t length(const char* string)
     {
@@ -289,17 +291,15 @@ void loop() {
       // Map time value from potentiometer--max is 15 minutes
       setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
 
-      using namespace UI;
-
       // Add selector braces: "Set time: <15:00>"
-      lcdPrinter.printfval(setDuration, fsecs, ValueDecor::SELECTING,
-                          setTimeIndex, line::Time);
+      lcdPrinter.printfval_P(setDuration, fsecs, UI::selected,
+                            UI::setTimeIndex, line::Time);
 
       if(wpb.pressed()) {
 
         // Overwrite "<>" selector braces
-        lcdPrinter.printfval(setDuration, fsecs, ValueDecor::DESELECTING,
-                            setTimeIndex, line::Time);
+        lcdPrinter.printfval_P(setDuration, fsecs, UI::deselected,
+                              UI::setTimeIndex, line::Time);
 
         // Convert mapped time to calculatable millis after printing from seconds
         setDuration *= 1000;                            
@@ -322,8 +322,8 @@ void loop() {
       using namespace UI;
 
       // Add selector braces: "Set speed: <255>"
-      lcdPrinter.printfval(motorSpeed, raw, ValueDecor::SELECTING,
-                          speedIndex, line::Speed);
+      lcdPrinter.printfval_P(motorSpeed, raw, UI::selected,
+                            UI::speedIndex, line::Speed);
       // Map printing of motorSpeed to rpm range?!
 
       if(wpb.pressed()) {
@@ -332,8 +332,8 @@ void loop() {
         // updated in becomes unreachable
 
         // Overwrite "<>" selector braces
-        lcdPrinter.printfval(motorSpeed, raw, ValueDecor::DESELECTING,
-                            speedIndex, line::Speed);
+        lcdPrinter.printfval_P(motorSpeed, raw, UI::deselected,
+                              UI::speedIndex, line::Speed);
 
         // Change the mode for next loop() call
         currentMode = Mode::SPINNING;
