@@ -83,7 +83,7 @@ class Printer<LiquidCrystal> {
     inline void changeLine_P(PGM_P string, uint8_t line) {
 
       streamPtr->setCursor(0, line);
-      streamPtr->print( (PGM_P) pgm_read_word( &(string)));
+      streamPtr->print( (PGM_P) pgm_read_word(&string));
 
       /* `pgm_read_word` implementation:
         Implements a Load Program Memory instruction on an 8-bit RAM
@@ -98,6 +98,10 @@ class Printer<LiquidCrystal> {
         */
 
     } // void changeLine_P
+
+    inline void print_P(PGM_P string) {
+      streamPtr->print( (PGM_P) pgm_read_word(&string));
+    }
 
     friend class Print;
     friend class FSecsPrint;

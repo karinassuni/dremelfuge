@@ -27,9 +27,7 @@ Global variables use 82 bytes (4%) of dynamic memory. Maximum is 2,048 bytes.
   comment in loop() for details on `static`)
   */
 
-// 1) constexpr function and named variables for timeCol and speedCol, to be put
-// in printfval
-// 2) Define custom value decorations in THIS FILE, to be fed into lcdPrinter where
+// 1) Define custom value decorations in THIS FILE, to be fed into lcdPrinter where
 // it will be parsed and the value will be inserted by the placement of the ' ' i.e.
 // "< >" => "<15:00>" (constexpr)
 
@@ -87,16 +85,47 @@ namespace {
       The latter can be inefficient since you're storing and retrieving in Flash
       an additional array, of pointers.
       */
+
   namespace UI {
 
-    const char title[] PROGMEM      = "  Dremel Centrifuge";
-    const char setTime[] PROGMEM    = "Set time: ";
-    const char setSpeed[] PROGMEM   = "Set speed: ---";
-    const char pushStart[] PROGMEM  = "   Push to Start!";
+    /* Explanation of `constexpr`:
+      `constexpr` stands for "constant expression" and denotes that this variable
+      will have its value accessible at compile time, or denotes that this
+      function (which has several limitations, including that its arguments can
+      only be constexpr values) can be used to do computations at compile-time.
+      Note that literals are constant expressions.
+      */
+
+    // Use constexpr here to obtain AT COMPILE TIME indicies that are important
+    // for runtime UI, without hard-coding the appropriate magic index. Besides
+    // clarity, compile time computation has two other huge benefits: program
+    // storage space (Flash memory) is saved since machine instructions aren't
+    // generated for these one-time calculations (since after compile time the
+    // instructions are already executed and the results obtained), AND RAM is
+    // saved because, for modified Harvard-architecture MCUs like Atmel AVRs,
+    // read only memory (ROM) is stored separately (in Flash) from dynamic memory
+    // (RAM), and might even be accessed faster. Additionally, here compile-time
+    // computation is necessary because these UI strings can be operated on
+    // before they are placed in Flash.
+
+    constexpr char title[] PROGMEM      = "  Dremel Centrifuge";
+    constexpr char setTime[] PROGMEM    = "Set time: ";
+    constexpr char setSpeed[] PROGMEM   = "Set speed: ";
+    constexpr char pushStart[] PROGMEM  = "   Push to Start!";
 
     // UI associated with SPINNING mode
-    const char finishedIn[] PROGMEM = "Finished in: ";
-    const char pushStop[] PROGMEM   = "   Push to Stop! ";
+    constexpr char finishedIn[] PROGMEM = "Finished in: ";
+    constexpr char pushStop[] PROGMEM   = "   Push to Stop! ";
+    constexpr char nullValue[] PROGMEM  = "---";
+
+    constexpr uint8_t length(const char* string)
+    {
+      return *string ? 1 + length(string + 1) : 0;
+    }
+
+    constexpr uint8_t setTimeIndex = length(setTime) - 1;
+    constexpr uint8_t speedIndex = length(setSpeed) - 1;
+    constexpr uint8_t finishTimeIndex = length(finishedIn) - 1;    
 
   } // namespace UI
 
@@ -164,6 +193,7 @@ void setup() {
   lcdPrinter.changeLine_P(title, line::Title);
   lcdPrinter.changeLine_P(setTime, line::Time);
   lcdPrinter.changeLine_P(setSpeed, line::Speed);
+  lcdPrinter.print_P(nullValue);
   lcdPrinter.changeLine_P(pushStart, line::Instructions); 
 
 } // void setup()
@@ -256,18 +286,20 @@ void loop() {
 
     case Mode::SETTING_TIME: {
 
-      // Map time value from potentiometer
+      // Map time value from potentiometer--max is 15 minutes
       setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
+
+      using namespace UI;
 
       // Add selector braces: "Set time: <15:00>"
       lcdPrinter.printfval(setDuration, fsecs, ValueDecor::SELECTING,
-                          10, line::Time);
+                          setTimeIndex, line::Time);
 
       if(wpb.pressed()) {
 
         // Overwrite "<>" selector braces
         lcdPrinter.printfval(setDuration, fsecs, ValueDecor::DESELECTING,
-                            10, line::Time);
+                            setTimeIndex, line::Time);
 
         // Convert mapped time to calculatable millis after printing from seconds
         setDuration *= 1000;                            
@@ -287,9 +319,11 @@ void loop() {
       // Map motor speed to potentiometer
       motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
 
+      using namespace UI;
+
       // Add selector braces: "Set speed: <255>"
       lcdPrinter.printfval(motorSpeed, raw, ValueDecor::SELECTING,
-                          11, line::Speed);
+                          speedIndex, line::Speed);
       // Map printing of motorSpeed to rpm range?!
 
       if(wpb.pressed()) {
@@ -299,7 +333,7 @@ void loop() {
 
         // Overwrite "<>" selector braces
         lcdPrinter.printfval(motorSpeed, raw, ValueDecor::DESELECTING,
-                            11, line::Speed);
+                            speedIndex, line::Speed);
 
         // Change the mode for next loop() call
         currentMode = Mode::SPINNING;
@@ -329,7 +363,7 @@ void loop() {
       (setDuration - (millis() - spinningStartTime))/1000;
 
       // Print countdown (no special functions needed)
-      lcd.setCursor(13, line::Time);
+      lcd.setCursor(UI::finishTimeIndex, line::Time);
       lcd.print(timeLeft);
 
       if(wpb.pressed() || timeLeft == 0) {
