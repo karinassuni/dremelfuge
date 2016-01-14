@@ -27,10 +27,6 @@ Global variables use 82 bytes (4%) of dynamic memory. Maximum is 2,048 bytes.
   comment in loop() for details on `static`)
   */
 
-// 1) Define custom value decorations in THIS FILE, to be fed into lcdPrinter where
-// it will be parsed and the value will be inserted by the placement of the ' ' i.e.
-// "< >" => "<15:00>" (constexpr)
-
 namespace {
 
   const uint8_t MOTOR_PIN = 9;
