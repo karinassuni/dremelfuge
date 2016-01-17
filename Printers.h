@@ -36,7 +36,6 @@ struct FSecsPrint {
 
 // `Printer` is a wrapper/extension of LiquidCrystal and other Stream classes.
 // Contains a pointer to the stream it extends so it can be used similarly.
-
 template <class Stream>
 class Printer {
   private:

@@ -8,8 +8,8 @@ Uploaded to an Arduino UNO, with MCU ATmega328P-PU.
 Arduino UNO specs: https://www.arduino.cc/en/Main/ArduinoBoardUno
 ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 
-Sketch uses 4,408 bytes (13%) of program storage space. Maximum is 32,256 bytes.
-Global variables use 82 bytes (4%) of dynamic memory. Maximum is 2,048 bytes.
+Sketch uses 4,564 bytes (14%) of program storage space. Maximum is 32,256 bytes.
+Global variables use 86 bytes (4%) of dynamic memory. Maximum is 2,048 bytes.
 */
 
 #include <LiquidCrystal.h>                              // library inside of Arduino.app, use <> DIRECTIVE
@@ -74,14 +74,14 @@ namespace {
     retrieving it when needed.
     */
 
-  // UI Strings to be stored in Flash memory *as arrays of characters*
-    /* Arrays MUST be uniform, and this is accomplished by either a uniform 2D
-      array of chars, or if that's too inefficient due to too much variation in
-      string length, accomplished by a 1D array of pointers to any-length
-      strings (char arrays[] stored as variables).
-      The latter can be inefficient since you're storing and retrieving in Flash
-      an additional array, of pointers.
-      */
+  /* UI Strings to be stored in Flash memory *as arrays of characters*
+    Arrays MUST be uniform, and this is accomplished by either a uniform 2D
+    array of chars, or if that's too inefficient due to too much variation in
+    string length, accomplished by a 1D array of pointers to any-length
+    strings (char arrays[] stored as variables).
+    The latter can be inefficient since you're storing and retrieving in Flash
+    an additional array, of pointers.
+    */
 
   namespace UI {
 
@@ -93,27 +93,30 @@ namespace {
       Note that literals are constant expressions.
       */
 
-    // Use constexpr here to obtain AT COMPILE TIME indicies that are important
-    // for runtime UI, without hard-coding the appropriate magic index. Besides
-    // clarity, compile time computation has two other huge benefits: program
-    // storage space (Flash memory) is saved since machine instructions aren't
-    // generated for these one-time calculations (since after compile time the
-    // instructions are already executed and the results obtained), AND RAM is
-    // saved because, for modified Harvard-architecture MCUs like Atmel AVRs,
-    // read only memory (ROM) is stored separately (in Flash) from dynamic memory
-    // (RAM), and might even be accessed faster. Additionally, here compile-time
-    // computation is necessary because these UI strings can be operated on
-    // before they are placed in Flash.
+    /* Explanation of need for `constexpr`:
+      Use constexpr here to obtain AT COMPILE TIME indicies that are important
+      for runtime UI, without hard-coding the appropriate magic index. Besides
+      clarity, compile time computation has two other huge benefits: program
+      storage space (Flash memory) is saved since machine instructions aren't
+      generated for these one-time calculations (since after compile time the
+      instructions are already executed and the results obtained), AND RAM is
+      saved because, for modified Harvard-architecture MCUs like Atmel AVRs,
+      read only memory (ROM) is stored separately (in Flash) from dynamic memory
+      (RAM), and might even be accessed faster. Additionally, here compile-time
+      computation is necessary because these UI strings can be operated on
+      before they are placed in Flash.
+      */
 
-    constexpr char title[] PROGMEM      = "  Dremel Centrifuge";
+    // Only strings whose ending index is needed ahead of time are `constexpr`:
+        const char title[] PROGMEM      = "  Dremel Centrifuge";
     constexpr char setTime[] PROGMEM    = "Set time: ";
     constexpr char setSpeed[] PROGMEM   = "Set speed: ";
-    constexpr char pushStart[] PROGMEM  = "   Push to Start!";
+        const char pushStart[] PROGMEM  = "   Push to Start!";
 
     // UI associated with SPINNING mode
     constexpr char finishedIn[] PROGMEM = "Finished in: ";
-    constexpr char pushStop[] PROGMEM   = "   Push to Stop! ";
-    constexpr char nullValue[] PROGMEM  = "---";
+        const char pushStop[] PROGMEM   = "   Push to Stop! ";
+        const char nullValue[] PROGMEM  = "---";
 
     // Value decorations--very small, storing in Flash would be less efficient
     // due to the extra time and extra code needed to access Flash memory
@@ -125,6 +128,7 @@ namespace {
       return *string ? 1 + length(string + 1) : 0;
     }
 
+    // Indices at which to print values--at last indicies of these strings + 1
     constexpr uint8_t setTimeIndex = length(setTime);
     constexpr uint8_t speedIndex = length(setSpeed);
     constexpr uint8_t finishTimeIndex = length(finishedIn);    
@@ -275,9 +279,9 @@ void loop() {
 
   static Mode currentMode = Mode::SETTING_TIME;         // initialization over assignment; set SETTING_TIME as the first mode!
 
-  /* Perform operations with data of the same type, will boost processing speed
-    by removing implicit typecasts, but if datatype is not the smallest that can
-    hold the maximum value of that data, then this comes at a cost to SRAM.
+  /* Performing operations with data of the same type will boost processing speed
+    by removing implicit typecasts, but if the data could be held in a smaller
+    datatype, then this speed costs space.
     */
 
   static unsigned long setDuration;                     // measured in ms so unsigned long is appropriate
