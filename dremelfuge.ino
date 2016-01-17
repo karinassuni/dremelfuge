@@ -43,11 +43,12 @@ namespace {
   const uint8_t LCD_COLUMNS = 20;
   const uint8_t LCD_ROWS = 4;
 
-  // Extension of LiquidCystal as a Stream
+  // Extension of the LiquidCystal class
   Printer<LiquidCrystal> lcdPrinter(&lcd);
 
-  // Functors customizing methods on lcdPrinter
-  NormalPrint raw;               // Default constructors
+  // Functors for customized print formatting through Printer class--no RAM heavy
+  // string manipulations
+  PercentPrint percent;          // Default constructors
   FSecsPrint fsecs;
 
   /* Explanation of string problem and contants/literals:
@@ -113,17 +114,20 @@ namespace {
     constexpr char finishedIn[] PROGMEM = "Finished in: ";
     constexpr char pushStop[] PROGMEM   = "   Push to Stop! ";
     constexpr char nullValue[] PROGMEM  = "---";
-    constexpr char selected[] PROGMEM = "<>";
-    constexpr char deselected[] PROGMEM = "";
+
+    // Value decorations--very small, storing in Flash would be less efficient
+    // due to the extra time and extra code needed to access Flash memory
+    const char selected[]   = "<>";
+    const char deselected[] = "";
 
     constexpr uint8_t length(const char* string)
     {
       return *string ? 1 + length(string + 1) : 0;
     }
 
-    constexpr uint8_t setTimeIndex = length(setTime) - 1;
-    constexpr uint8_t speedIndex = length(setSpeed) - 1;
-    constexpr uint8_t finishTimeIndex = length(finishedIn) - 1;    
+    constexpr uint8_t setTimeIndex = length(setTime);
+    constexpr uint8_t speedIndex = length(setSpeed);
+    constexpr uint8_t finishTimeIndex = length(finishedIn);    
 
   } // namespace UI
 
@@ -288,13 +292,13 @@ void loop() {
       setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 901);
 
       // Add selector braces: "Set time: <15:00>"
-      lcdPrinter.printfval_P(setDuration, fsecs, UI::selected,
+      lcdPrinter.printfval(setDuration, fsecs, UI::selected,
                             UI::setTimeIndex, line::Time);
 
       if(wpb.pressed()) {
 
         // Overwrite "<>" selector braces
-        lcdPrinter.printfval_P(setDuration, fsecs, UI::deselected,
+        lcdPrinter.printfval(setDuration, fsecs, UI::deselected,
                               UI::setTimeIndex, line::Time);
 
         // Convert mapped time to calculatable millis after printing from seconds
@@ -312,13 +316,12 @@ void loop() {
 
     case Mode::SETTING_SPEED: {
 
-      // Map motor speed to potentiometer
-      motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 255);
+      // Map motor speed to potentiometer--display as a percentage
+      // Conversions using `map()` is most efficient
+      motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 101);
 
-      using namespace UI;
-
-      // Add selector braces: "Set speed: <255>"
-      lcdPrinter.printfval_P(motorSpeed, raw, UI::selected,
+      // Add selector braces: "Set speed: <100%>"
+      lcdPrinter.printfval(motorSpeed, percent, UI::selected,
                             UI::speedIndex, line::Speed);
       // Map printing of motorSpeed to rpm range?!
 
@@ -328,7 +331,7 @@ void loop() {
         // updated in becomes unreachable
 
         // Overwrite "<>" selector braces
-        lcdPrinter.printfval_P(motorSpeed, raw, UI::deselected,
+        lcdPrinter.printfval(motorSpeed, percent, UI::deselected,
                               UI::speedIndex, line::Speed);
 
         // Change the mode for next loop() call
@@ -338,7 +341,9 @@ void loop() {
         // becomes unreachable due to changing the Mode pointer!)
         changeUI(UI::finishedIn, UI::pushStop);
 
+        // analogRead takes a value between 0 and 255--convert motorSpeed
         // Turn on motor right before the countdown starts, for more accuracy
+        motorSpeed = map(motorSpeed, 0, 101, 0, 255);
         analogWrite(MOTOR_PIN, motorSpeed);
 
         // Start the counter from here, now that the mode is about to change
@@ -358,14 +363,17 @@ void loop() {
       const unsigned long timeLeft =
       (setDuration - (millis() - spinningStartTime))/1000;
 
-      // Print countdown (no special functions needed)
-      lcd.setCursor(UI::finishTimeIndex, line::Time);
-      lcd.print(timeLeft);
+      // Print countdown
+      lcdPrinter.printfval(timeLeft, fsecs, UI::deselected,
+                            UI::finishTimeIndex, line::Time);
 
       if(wpb.pressed() || timeLeft == 0) {
 
         // Turn off motor
         digitalWrite(MOTOR_PIN, LOW);
+
+        // Unconvert motorSpeed for consistency in display
+        motorSpeed = map(motorSpeed, 0, 255, 0, 101);
 
         // Change mode for next loop() call
         currentMode = Mode::SETTING_TIME;
