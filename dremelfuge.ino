@@ -2,7 +2,7 @@
 Dremelfuge ETC Project 2015-2016
 Adapted from Orlov's Instructable on Arduino Powered Centrifuge
 
-Compiled and Edited by: Albert Ju, Fu Yang Chin
+Compiled and Edited by: Albert Ju, Fu Yang Chin, Karina Antonio
 
 Uploaded to an Arduino UNO, with MCU ATmega328P-PU.
 Arduino UNO specs: https://www.arduino.cc/en/Main/ArduinoBoardUno
