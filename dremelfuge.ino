@@ -29,7 +29,7 @@ Global variables use 86 bytes (4%) of dynamic memory. Maximum is 2,048 bytes.
 
 namespace {
 
-  const uint8_t MOTOR_PIN = 9;
+  const uint8_t MOTOR_PIN = 9;  // connected to base of transistor
   const uint8_t POT_PIN = A5;
 
   // White PushButton
@@ -321,13 +321,12 @@ void loop() {
     case Mode::SETTING_SPEED: {
 
       // Map motor speed to potentiometer--display as a percentage
-      // Conversions using `map()` is most efficient
-      motorSpeed = map(analogRead(POT_PIN), 0, 1024, 0, 101);
+      // Conversions using `map()` is most optimized
+      motorSpeed = map(analogRead(POT_PIN), 0, 1024, 50, 255);
 
       // Add selector braces: "Set speed: <100%>"
       lcdPrinter.printfval(motorSpeed, percent, UI::selected,
                             UI::speedIndex, line::Speed);
-      // Map printing of motorSpeed to rpm range?!
 
       if(wpb.pressed()) {
 
@@ -345,11 +344,6 @@ void loop() {
         // becomes unreachable due to changing the Mode pointer!)
         changeUI(UI::finishedIn, UI::pushStop);
 
-        // analogRead takes a value between 0 and 255--convert motorSpeed
-        // Turn on motor right before the countdown starts, for more accuracy
-        motorSpeed = map(motorSpeed, 0, 101, 0, 255);
-        analogWrite(MOTOR_PIN, motorSpeed);
-
         // Start the counter from here, now that the mode is about to change
         spinningStartTime = millis();
 
@@ -361,6 +355,12 @@ void loop() {
 
 
     case Mode::SPINNING: {
+
+      // analogRead takes a value between 0 and 255--convert motorSpeed
+      //motorSpeed = map(motorSpeed, 0, 101, 0, 255);
+
+      // analogWrite/PWM must be done continuously
+      analogWrite(MOTOR_PIN, motorSpeed);
 
       // Truncate milliseconds (/1000) for more consistent displayed countdowns
       // Store in a variable so that it's calculated only once
@@ -377,7 +377,7 @@ void loop() {
         digitalWrite(MOTOR_PIN, LOW);
 
         // Unconvert motorSpeed for consistency in display
-        motorSpeed = map(motorSpeed, 0, 255, 0, 101);
+        //motorSpeed = map(motorSpeed, 0, 255, 0, 101);
 
         // Change mode for next loop() call
         currentMode = Mode::SETTING_TIME;

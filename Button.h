@@ -9,24 +9,24 @@ class Button
 {
   protected:
     
-    const uint8_t _pin;
-    uint16_t _debounceDelay;
+    const uint8_t _pin_;
+    // Length of time to wait before checking button state again
+    unsigned int _debounceDelayDuration_;
 
-    bool _defaultState;
-    unsigned long _lastTimePressed;
+    bool _defaultState_;
+    unsigned long _lastTimePressed_;
 
   public:
 
     //NOTE: initialization list only included in .cpp
     Button(const uint8_t pin,
-           uint16_t debounceDelay=500);
+           unsigned int debounceDelayDuration=500);
 
     virtual void begin();
-    void setDebounceDelay(uint16_t debounceDelay);
+    void setDebounceDelay(uint16_t debounceDelayDuration);
 
     bool pressed();
-    const void toggleWhenPressed(bool& condition);      // `const` member fn means that this fn *will not modify `this` member data*
-    const bool isHeld();
+    const bool isHeld();                                // `const` member fn means that this fn *will not modify `this` member data*
 
 };
 

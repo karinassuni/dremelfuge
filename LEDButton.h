@@ -8,14 +8,14 @@ class LEDButton : public Button
 {
   private:
 
-    const uint8_t _ledOutPin;
+    const uint8_t _ledOutPin_;
 
   public:
 
     // Call Button(int, int) constructor using constructor initialization list, setting inherited member data for you:
     LEDButton(const uint8_t pin,
               const uint8_t ledOutPin,
-              uint16_t debounceDelay=500);
+              unsigned int debounceDelayDuration=500);
     
     void begin();
 

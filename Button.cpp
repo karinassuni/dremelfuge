@@ -2,10 +2,10 @@
 #include "Button.h"
 
 // Combination of Button(byte) and Button(byte, int) constructors via default args
-Button::Button(const uint8_t pin, uint16_t debounceDelay)
-: _pin(pin)
-, _debounceDelay(debounceDelay)
-, _lastTimePressed(0)
+Button::Button(const uint8_t pin, unsigned int debounceDelayDuration)
+: _pin_(pin)
+, _debounceDelayDuration_(debounceDelayDuration)
+, _lastTimePressed_(0)
 {} // Constructor
 
 /* Separated from constructor because these functions need to be called in
@@ -13,35 +13,32 @@ Button::Button(const uint8_t pin, uint16_t debounceDelay)
 
 void Button::begin()
 {
-  pinMode(_pin, INPUT);
-  _defaultState = digitalRead(_pin);
+  pinMode(_pin_, INPUT);
+  _defaultState_ = digitalRead(_pin_);
 }
 
-void Button::setDebounceDelay(uint16_t debounceDelay)
+void Button::setDebounceDelay(unsigned int debounceDelayDuration)
 {
-  _debounceDelay = debounceDelay;
+  _debounceDelayDuration_ = debounceDelayDuration;
 }
 
 bool Button::pressed()
 {
-  bool currentState = digitalRead(_pin);
+  bool currentState = digitalRead(_pin_);
+  unsigned long durationSinceLastPress = millis() - _lastTimePressed_;
 
-  if(currentState == !_defaultState && (millis() - _lastTimePressed > _debounceDelay))
+  if(currentState == !_defaultState_ && durationSinceLastPress > _debounceDelayDuration_)
   {
-    _lastTimePressed = millis();
+    _lastTimePressed_ = millis();
     return true;
   }
   else
     return false;
 } 
 
-const void Button::toggleWhenPressed(bool& condition)
-{
-  if(pressed())
-    condition ^= true;                                  // == condition = !condition; using a more efficient "xor toggle"
-} 
-
+// Same as pressed(), but without any debounce delay--hence good for held buttons
 const bool Button::isHeld()
 {
-  return digitalRead(_pin) == !_defaultState;
+  // return true if button held, false if not (if currently at default state)
+  return digitalRead(_pin_) == !_defaultState_;
 } 
