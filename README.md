@@ -4,7 +4,7 @@ A cheap Dremel-centrifuge!
 <br>
 <br>
 
-### Agenda
+## Agenda
 - Install Dremel motor and its power supply
 - Insert diode
 - Solder all capacitors:
@@ -15,7 +15,7 @@ A cheap Dremel-centrifuge!
 - Cut and hot-glue everything into case
 
 ========================================
-##### To Buy:
+### To Buy:
 - Acrylic glue (acrylic cement) [from Sears]
 - Soldering board
 - 5x 0.1 uF (bypass/filter/decoupling) capacitor, ceramic [NTE CML104M50]
@@ -39,7 +39,7 @@ A cheap Dremel-centrifuge!
   - must also have a maximum forward voltage low enough so that small load currents can make it past the diode, for when the smallest controlling currents are supplied at base
   - http://electronics.stackexchange.com/questions/95140/purpose-of-the-diode-and-capacitor-in-this-motor-circuiit
 
-##### Notes:
+#### Notes:
 - No resistor needed--NTE24 transistor strong enough to accept raw PWM at base, (5*(x/255)) Volts
 - Choosing appropriate diodes and capacitors is simple and straightforward--only a few parameters matter
   - Diodes
@@ -49,7 +49,7 @@ A cheap Dremel-centrifuge!
     - Capacitance (C)
     - Rated DC voltage (V_R)
 
-##### Odd behaviors:
+### Odd behaviors:
 - Motor does not turn on again if it's toggled TOO QUICKLY (such that the motor is actually spinning, rather than just humming)
   - => back EMF not filtered well, motor circuit needs time to dissipate energy after a toggle?
   - => idkkkkkkk
