@@ -29,7 +29,7 @@ Global variables use 86 bytes (4%) of dynamic memory. Maximum is 2,048 bytes.
 
 namespace {
 
-  const uint8_t MOTOR_PIN = 9;  // connected to base of transistor
+  const uint8_t MOTOR_PIN = 10;  // connected to base of transistor
   const uint8_t POT_PIN = A5;
 
   // White PushButton
@@ -169,6 +169,7 @@ namespace {
 } // namespace
 
 // Application-specific function: Time and Instructions are the only dynamic UI
+
 inline void changeUI(PGM_P timeStr, PGM_P instructionStr) {
 
   // "Set time:" <=> "Finished in:"
