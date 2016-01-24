@@ -4,13 +4,13 @@ A cheap Dremel-centrifuge!
 <br>
 <br>
 <br>
+<br>
 
 ## Agenda
 - Troubleshoot motor circuit--battery smoke, insufficient current and rpm, lack of PWM control
 - Solder all capacitors:
   - to dampen noise experienced by motor, soldered according to https://www.pololu.com/docs/0J15/9
 - Cut and hot-glue everything into case
-
 ========================================
 
 <br>
