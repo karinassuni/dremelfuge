@@ -5,12 +5,12 @@ A cheap Dremel-centrifuge!
 <br>
 
 ## Agenda
-- ~Install Dremel motor and its power supply~
-- ~Insert diode~
+- ~~Install Dremel motor and its power supply~~
+- ~~Insert diode~~
 - Troubleshoot motor circuit--battery smoke, insufficient current and rpm, lack of PWM control
 - Solder all capacitors:
-  - ~to prevent motor noise to from producing LCD garbage~
-  - ~to eliminate noise affecting potentiometer~
+  - ~~to prevent motor noise to from producing LCD garbage~~
+  - ~~to eliminate noise affecting potentiometer~~
   - to dampen noise experienced by motor, soldered according to https://www.pololu.com/docs/0J15/9
 - Cut and hot-glue everything into case
 
@@ -32,8 +32,8 @@ A cheap Dremel-centrifuge!
 - Motor humming but not spinning && motor won't start without a push
   - Must use a PWM voltage that's at least 25% of the motor's full speed voltage
   - Only works for FIXED pulse-width modulated voltage:
-    - ~=> capacitor linearizes the PWM square wave (turns PWM into an actually constant voltage) => constant current => no disconnected "spurts of torque"~
-    - ~http://electronics.stackexchange.com/questions/27581/motor-hums-arduino-pwm~
+    - ~~=> capacitor linearizes the PWM square wave (turns PWM into an actually constant voltage) => constant current => no disconnected "spurts of torque"~~
+    - ~~http://electronics.stackexchange.com/questions/27581/motor-hums-arduino-pwm~~
 - Garbage on LCD
   - => bypass/filter/decoupling capacitor across the LCD, AND ANOTHER across the motor
   - http://www.seattlerobotics.org/encoder/jun97/basics.html
