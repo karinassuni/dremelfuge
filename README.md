@@ -3,6 +3,7 @@ Dremelfuge
 A cheap Dremel-centrifuge!
 <br>
 <br>
+<br>
 
 ## Agenda
 - Troubleshoot motor circuit--battery smoke, insufficient current and rpm, lack of PWM control
@@ -11,10 +12,11 @@ A cheap Dremel-centrifuge!
 - Cut and hot-glue everything into case
 
 ========================================
+
 <br>
 <br>
 <br>
-#### Notes:
+##### Notes:
 - No resistor needed--NTE24 transistor strong enough to accept raw PWM at base, (5\*(x/255)) Volts
 - Choosing appropriate diodes and capacitors is simple and straightforward--only a few parameters matter
   - Diodes
@@ -24,7 +26,7 @@ A cheap Dremel-centrifuge!
     - Capacitance (C)
     - Rated DC voltage (V\_R)
 
-#### Odd behaviors:
+##### Odd behaviors:
 - Motor does not turn on again if it's toggled TOO QUICKLY
   - => back EMF not filtered well, motor circuit needs time to dissipate energy after a toggle?
 - Motor humming but not spinning && motor won't start without a push
