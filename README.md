@@ -5,12 +5,8 @@ A cheap Dremel-centrifuge!
 <br>
 
 ## Agenda
-- ~~Install Dremel motor and its power supply~~
-- ~~Insert diode~~
 - Troubleshoot motor circuit--battery smoke, insufficient current and rpm, lack of PWM control
 - Solder all capacitors:
-  - ~~to prevent motor noise to from producing LCD garbage~~
-  - ~~to eliminate noise affecting potentiometer~~
   - to dampen noise experienced by motor, soldered according to https://www.pololu.com/docs/0J15/9
 - Cut and hot-glue everything into case
 
