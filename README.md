@@ -11,6 +11,7 @@ A cheap Dremel-centrifuge!
 - Solder all capacitors:
   - to dampen noise experienced by motor, soldered according to https://www.pololu.com/docs/0J15/9
 - Cut and hot-glue everything into case
+
 ========================================
 
 <br>
