@@ -40,3 +40,6 @@ A cheap Dremel-centrifuge!
   - http://www.seattlerobotics.org/encoder/jun97/basics.html
 - Noise on potentiometer
   - => bypass/filter/decoupling cap
+
+##### Mistakes:
+- No signal diode to protect Arduino pin at base, because forward voltage drop too much, and it's only too much because the transistor (max voltage at base) value too high, too fitted to Arduino PWM
