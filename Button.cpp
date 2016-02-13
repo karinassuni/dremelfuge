@@ -1,44 +1,42 @@
 #include <Arduino.h>
 #include "Button.h"
 
-// Combination of Button(byte) and Button(byte, int) constructors via default args
-Button::Button(const uint8_t pin, unsigned int debounceDelayDuration)
-: _pin_(pin)
-, _debounceDelayDuration_(debounceDelayDuration)
-, _lastTimePressed_(0)
-{} // Constructor
+Button::Button(uint8_t inPin, unsigned int debounce)
+: inputPin(inPin)
+, debounceDelay(debounce)
+, lastPressTime(0)
+{} 
 
-/* Separated from constructor because these functions need to be called in
-  setup(), and object needs global scope */
 
 void Button::begin()
+/* Separated from constructor as per
+https://www.arduino.cc/en/Reference/APIStyleGuide */
 {
-  pinMode(_pin_, INPUT);
-  _defaultState_ = digitalRead(_pin_);
+  pinMode(inputPin, INPUT);
+  defaultState = digitalRead(inputPin);
 }
 
-void Button::setDebounceDelay(unsigned int debounceDelayDuration)
+void Button::setDebounce(unsigned int debounce)
 {
-  _debounceDelayDuration_ = debounceDelayDuration;
+  debounceDelay = debounce;
 }
 
 bool Button::pressed()
 {
-  bool currentState = digitalRead(_pin_);
-  unsigned long durationSinceLastPress = millis() - _lastTimePressed_;
 
-  if(currentState == !_defaultState_ && durationSinceLastPress > _debounceDelayDuration_)
+  if(digitalRead(inputPin) == !defaultState
+     && millis() - lastPressTime > debounceDelay) // delta t since last press > debounceDelay
   {
-    _lastTimePressed_ = millis();
+    lastPressTime = millis();
     return true;
   }
-  else
-    return false;
+  
+  return false;
+
 } 
 
-// Same as pressed(), but without any debounce delay--hence good for held buttons
-const bool Button::isHeld()
+const bool Button::held()
+// pressed() without debounce
 {
-  // return true if button held, false if not (if currently at default state)
-  return digitalRead(_pin_) == !_defaultState_;
+  return (digitalRead(inputPin) == !defaultState);
 } 
