@@ -8,8 +8,8 @@ Uploaded to an Arduino UNO, with MCU ATmega328P-PU.
 Arduino UNO specs: https://www.arduino.cc/en/Main/ArduinoBoardUno
 ATmega328P-PU datasheet: http://www.atmel.com/Images/doc8161.pdf
 
-Sketch uses 4,414 bytes (13%) of program storage space. Maximum is 32,256 bytes.
-Global variables use 88 bytes (3%) of dynamic memory. Maximum is 2,048 bytes.
+Sketch uses 4,398 bytes (13%) of program storage space. Maximum is 32,256 bytes.
+Global variables use 88 bytes (4%) of dynamic memory. Maximum is 2,048 bytes.
 */
 
 #include <LiquidCrystal.h>  // library inside of Arduino.app, use <> DIRECTIVE
@@ -20,7 +20,7 @@ Global variables use 88 bytes (3%) of dynamic memory. Maximum is 2,048 bytes.
 
 namespace {
 
-    const uint8_t MOTOR_PIN = 10;  // connected to base of transistor
+    const uint8_t MOTOR_PIN = 10;   // connected to base of transistor
     const uint8_t POT_PIN = A5;
 
     // White PushButton
@@ -30,7 +30,7 @@ namespace {
     LEDButton wpb = LEDButton(WPB_INPUT_PIN, WPB_LED_PIN, WPB_DEBOUNCE_DELAY);
 
     // LCD
-    LCDPrinter lcd = LCDPrinter(12, 11, 5, 4, 3, 6);  // numbers of the interface pins
+    LCDPrinter lcd = LCDPrinter(12, 11, 5, 4, 3, 6);    // numbers of the interface pins
     const uint8_t LCD_COLUMNS = 20;
     const uint8_t LCD_ROWS = 4;
 
@@ -47,17 +47,18 @@ namespace {
             set, instead of taking up memory.
         */
 
+        // Default, set-up UI
             const char title[] PROGMEM      = "  Dremel Centrifuge";
         constexpr char setTime[] PROGMEM    = "Set time: ";
         constexpr char setSpeed[] PROGMEM   = "Set speed: ";
            constexpr char pushTo[] PROGMEM  = "   Push to ";
 
         const char pushStart[] PROGMEM = "Start!";
+        const char nullValue[] PROGMEM = "---";
 
-        // UI associated with SPINNING mode
+        // SPINNING mode UI
         constexpr char finishedIn[] PROGMEM = "Finished in: ";
-        const char pushStop[] PROGMEM   = "Stop! ";
-        const char nullValue[] PROGMEM  = "---";
+        const char pushStop[] PROGMEM = "Stop! ";
 
         // Value decoration--very small, storing in Flash would be less efficient
         // due to the extra time and extra code needed to access Flash memory
@@ -105,7 +106,7 @@ inline void selectPrint(const T value, Functor& printfn,
     lcd.setCursor(col, row);
 
     lcd.print( UI::selected[0] );
-    printfn(value, &lcd);
+    printfn(value, lcd);
     lcd.print( UI::selected[1] );
 
     // Clear hanging digits
@@ -119,7 +120,7 @@ inline void deselectPrint(const T value, Functor& printfn,
 
     lcd.setCursor(col, row);
 
-    printfn(value, &lcd);
+    printfn(value, lcd);
 
     // Clear hanging digits
     lcd.print(F("   "));
@@ -145,8 +146,7 @@ void setup() {
     using namespace UI;
     lcd.changeLine_P(title, line::Title);
     lcd.changeLine_P(setTime, line::Time);
-    lcd.changeLine_P(setSpeed, line::Speed);
-    lcd.print_P(nullValue);
+    lcd.changeLine_P(setSpeed, line::Speed); lcd.print_P(nullValue);
     lcd.changeLine_P(pushStart, line::Instructions); 
 
 }
@@ -163,7 +163,7 @@ void loop() {
     };
 
     static Mode currentMode = Mode::SETTING_TIME;
-    static unsigned long setDuration; // in milliseconds
+    static unsigned long setDuration;   // in milliseconds
     static unsigned long spinningStartTime;
     static uint8_t motorSpeed;  // [0, 255] for analogWrite
 
@@ -171,17 +171,14 @@ void loop() {
 
         case Mode::SETTING_TIME: {
 
-            setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 900);  // Max time is 15 minutes
+            setDuration = map(analogRead(POT_PIN), 0, 1024, 0, 900);    // Max time is 15 minutes
 
             selectPrint(setDuration, fsecs, UI::setTimeIndex, line::Time);
 
             if(wpb.pressed()) {
 
-                deselectPrint(setDuration, fsecs, UI::setTimeIndex, line::Time);
-
-                // Convert readable secs to calculatable ms, since time-printing done
-                setDuration *= 1000;                            
-
+                setDuration *= 1000;    // convert for calculations (printing done)
+                deselectPrint(setDuration, fsecs, UI::setTimeIndex, line::Time);                      
                 currentMode = Mode::SETTING_SPEED;
 
             } 
@@ -189,7 +186,6 @@ void loop() {
             break;
 
         }
-
 
         case Mode::SETTING_SPEED: {
 
@@ -201,8 +197,9 @@ void loop() {
             if(wpb.pressed()) {
 
                 deselectPrint(motorSpeedPercent, percent, UI::speedIndex, line::Speed);
-                currentMode = Mode::SPINNING;
                 changeUI(UI::finishedIn, UI::pushStop);
+                currentMode = Mode::SPINNING;
+                spinningStartTime = millis();
 
             }
 
@@ -210,25 +207,21 @@ void loop() {
 
         }
 
-
         case Mode::SPINNING: {
 
             // analogWrite/PWM must be done continuously
             analogWrite(MOTOR_PIN, motorSpeed);
 
-            spinningStartTime = millis();
-
             // Store in a variable so calculation is only done once
-            const unsigned long timeLeft =
-            (setDuration - (millis() - spinningStartTime))/1000;
+            const unsigned long timeLeft = (setDuration - (millis() - spinningStartTime))/1000;
 
             selectPrint(timeLeft, fsecs, UI::finishTimeIndex, line::Time);
 
             if(wpb.pressed() || timeLeft <= 0) {
 
                 digitalWrite(MOTOR_PIN, LOW);
-                currentMode = Mode::SETTING_TIME;
                 changeUI(UI::setTime, UI::pushStart);
+                currentMode = Mode::SETTING_TIME;
 
             }
 
