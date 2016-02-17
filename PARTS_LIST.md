@@ -3,16 +3,21 @@ Parts List
 - Arduino UNO model R3
 - Dremel model 7700, 7.2V MultiPro
 
+- Briefcase
+- Acrylic casing
 - Protoboard for motor circuit
 - Breadboard for potentiometer, push button, display circuits
+- Copper wire
+- Jumper wire
+- Solder
 - "Gorilla Glue" Epoxy, for gluing acrylic
 - Hot glue
  
 - [] Hitachi LCD
 - [] LED Push Button, for changing operating modes
 - 2x potentiometers
-  - 1 for setting time and speed
-  - 1 for adjusting LCD contrast
+  - 1 [] for setting time and speed
+  - 1 [] for adjusting LCD contrast
 
 - Transistor [2N6388]
   - for controlling motor speed
