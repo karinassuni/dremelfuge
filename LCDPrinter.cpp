@@ -16,10 +16,11 @@ void LCDPrinter::changeLine_P(PGM_P string, uint8_t line) {
 
 void LCDPrinter::print_P(PGM_P string) {
     
-    // Addresses in Flash are read 1 byte or word at a time, so print the same way
-    for(uint8_t i = 0; i < strlen_P(string); i++)
+    const uint16_t length = strlen_P(string);   // more optimized type
 
-        // Need to typecast to char to print a character rather than an ASCI code
+    for(uint8_t i = 0; i < length; i++)
+
+        // Typecast to print a character instead of an ASCII code
         print( (char) pgm_read_byte(string + i));
 
 }

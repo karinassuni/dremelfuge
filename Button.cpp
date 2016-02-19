@@ -26,7 +26,7 @@ void Button::setDebounce(unsigned int debounce) {
 bool Button::pressed() {
 
     if(digitalRead(inputPin) == !defaultState
-         && millis() - lastPressTime > debounceDelay) // delta t since last press > debounceDelay
+        && millis() - lastPressTime > debounceDelay) // delta t since last press > debounceDelay
     {
         lastPressTime = millis();
         return true;
@@ -41,4 +41,5 @@ const bool Button::held() {
     // pressed() without debounce
 
     return (digitalRead(inputPin) == !defaultState);
+    
 } 

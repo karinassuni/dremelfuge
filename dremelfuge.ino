@@ -94,7 +94,7 @@ inline void changeUI(PGM_P timeStr, PGM_P instructionStr) {
     lcd.changeLine_P(timeStr, line::Time);
 
     // "Push to Start!" <=> "Push to Stop!"
-    lcd.setCursor( UI::instructionIndex, line::Instructions);
+    lcd.setCursor(UI::instructionIndex, line::Instructions);
     lcd.print_P(instructionStr);
 
 }
