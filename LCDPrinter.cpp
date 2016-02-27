@@ -16,9 +16,9 @@ void LCDPrinter::changeLine_P(PGM_P string, uint8_t line) {
 
 void LCDPrinter::print_P(PGM_P string) {
     
-    const uint16_t length = strlen_P(string);   // more optimized type
+    const auto length = strlen_P(string);
 
-    for(uint8_t i = 0; i < length; i++)
+    for(uint8_t i = 0; i < length; ++i)
 
         // Typecast to print a character instead of an ASCII code
         print( (char) pgm_read_byte(string + i));

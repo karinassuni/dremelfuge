@@ -77,14 +77,18 @@ namespace {
 
     } // namespace UI
 
-    // LCD row indices
-    enum line : char
-    {
-        Title = 0,
-        Time,
-        Speed,
-        Instructions
-    };
+    namespace line {
+
+        // LCD row indices
+        enum : char
+        {
+            Title = 0,
+            Time,
+            Speed,
+            Instructions
+        };
+
+    } // namespace line
 
 } // namespace
 
