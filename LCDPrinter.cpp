@@ -18,10 +18,12 @@ void LCDPrinter::print_P(PGM_P string) {
     
     const auto length = strlen_P(string);
 
-    for(uint8_t i = 0; i < length; ++i)
+    for(uint8_t i = 0; i < length; ++i) {
 
         // Typecast to print a character instead of an ASCII code
         print( (char) pgm_read_byte(string + i));
+        
+    }
 
 }
 
