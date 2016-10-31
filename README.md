@@ -5,11 +5,13 @@ An Arduino-controlled, Dremel-powered centrifuge.
 
 Code uploaded onto an Arduino UNO with MCU ATmega328P-PU. See the [parts list](https://github.com/karinassuni/dremelfuge/blob/master/PARTS_LIST.md) for details about other components.
 
-## [Images](https://drive.google.com/open?id=0Bxc8PYtkSgYCa09KSkRvbDljbnM)
+## Images
 
-<img src="https://drive.google.com/uc?export=download&id=0Bxc8PYtkSgYCcFFWRlpaRnJhQk0" width=512>
-<img src="https://drive.google.com/uc?export=download&id=0Bxc8PYtkSgYCb09FSnlNNXhBdTA" width=512>
-<img src="https://drive.google.com/uc?export=download&id=0Bxc8PYtkSgYCNXQyMG1vOGdfbTQ" width=512>
+<img src="https://drive.google.com/uc?export=download&id=0Bxc8PYtkSgYCNzdpRWxQM0JRN2M">
+<img src="https://drive.google.com/uc?export=download&id=0Bxc8PYtkSgYCUGU2bDFPNVV4Ykk">
+<img src="https://drive.google.com/uc?export=download&id=0Bxc8PYtkSgYCcHM5cUpQd3V5UFE">
+
+[More and high-resolution images on Google Drive.](https://drive.google.com/open?id=0Bxc8PYtkSgYCekw2UG10T2tycE0)
 
 ## To-do
 1. Add circuit diagram
